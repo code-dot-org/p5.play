@@ -110,6 +110,17 @@ describe('CollisionShape interface', function() {
         expect(shape.scale.y).to.eq(3);
       });
 
+      it('can compute its bounding box', function() {
+        var shape = new ShapeType();
+        var bbox = shape.getBoundingBox();
+        expect(typeof bbox.top).to.eq('number');
+        expect(typeof bbox.bottom).to.eq('number');
+        expect(typeof bbox.left).to.eq('number');
+        expect(typeof bbox.right).to.eq('number');
+        expect(typeof bbox.width).to.eq('number');
+        expect(typeof bbox.height).to.eq('number');
+      });
+
       describe('parent transforms', function() {
         it('center represents global (combined) position, offset represents local', function() {
           var shape = new ShapeType(new p5.Vector(2, 3));
