@@ -59,6 +59,7 @@ describe('sprite.overlap(sprite)', function() {
     moveAToB(spriteA, spriteB);
     spriteB.remove();
     expect(spriteA.overlap(spriteB)).to.be.false;
+    expect(spriteB.overlap(spriteA)).to.be.false;
   });
 
   it('calls callback once if sprites overlap', function() {
