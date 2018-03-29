@@ -1,6 +1,6 @@
 {
   "name": "@code-dot-org/p5.play",
-  "version": "1.2.0-cdo",
+  "version": "1.2.1-cdo",
   "description": "Code.org fork of molleindustria/p5.play for use within the Code Studio learning environment.",
   "dependencies": {},
   "devDependencies": {
