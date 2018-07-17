@@ -20,16 +20,16 @@ function setup() {
 
 function draw() {
   ball1.bounce(wall);
-  if (ball1.position.x > 400) {
-    //throw new Error('ball1 tunnelled through wall');
+  if (ball1.position.x > 500) {
+    throw new Error('ball1 tunnelled through wall');
   }
 
   ball2.position.x += ball2.velocity.x;
   ball2.position.y += ball2.velocity.y;
   ball2.bounce(wall);
-  if (ball2.position.x > 400) {
-    //throw new Error('ball2 tunnelled through wall');
+  if (ball2.position.x > 500) {
+    throw new Error('ball2 tunnelled through wall');
   }
-
   drawSprites();
+
 }
