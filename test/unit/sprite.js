@@ -678,4 +678,1050 @@ describe('Sprite', function() {
       });
     });
   });
+
+  describe('method aliases', function() {
+    var testSprite;
+
+    beforeEach(function() {
+      testSprite = pInst.createSprite();
+    });
+
+    it('aliases setSpeed to setSpeedAndDirection', function() {
+      testSprite.setSpeedAndDirection(5, 100);
+      expect(testSprite.getSpeed()).to.be.closeTo(5, 0.01);
+      expect(testSprite.getDirection()).to.be.closeTo(100, 0.01);
+    });
+
+    it('aliases remove to destroy', function() {
+      testSprite.destroy();
+      expect(testSprite.removed).to.be.true;
+    });
+
+    it('aliases animation.changeFrame to setFrame', function() {
+      testSprite.addAnimation('label', createTestAnimation());
+      sinon.stub(testSprite.animation, 'changeFrame');
+      testSprite.setFrame();
+      expect(testSprite.animation.changeFrame.calledOnce).to.be.true;
+    });
+
+    it('aliases animation.nextFrame to nextFrame', function() {
+      testSprite.addAnimation('label', createTestAnimation());
+      sinon.stub(testSprite.animation, 'nextFrame');
+      testSprite.nextFrame();
+      expect(testSprite.animation.nextFrame.calledOnce).to.be.true;
+    });
+
+    it('aliases animation.previousFrame to previousFrame', function() {
+      testSprite.addAnimation('label', createTestAnimation());
+      sinon.stub(testSprite.animation, 'previousFrame');
+      testSprite.previousFrame();
+      expect(testSprite.animation.previousFrame.calledOnce).to.be.true;
+    });
+
+    it('aliases animation.stop to pause', function() {
+      testSprite.addAnimation('label', createTestAnimation());
+      sinon.stub(testSprite.animation, 'stop');
+      testSprite.pause();
+      expect(testSprite.animation.stop.calledOnce).to.be.true;
+    });
+  });
+
+  describe('property aliases', function() {
+    var testSprite;
+
+    beforeEach(function() {
+      testSprite = pInst.createSprite();
+    });
+
+    it('aliases position.x to positionX', function() {
+      testSprite.position.x = 1;
+      expect(testSprite.position.x).to.equal(testSprite.x);
+      var newValue = 2;
+      testSprite.x = newValue;
+      expect(testSprite.position.x).to.equal(testSprite.x).to.equal(newValue);
+    });
+
+    it('aliases position.y to positionY', function() {
+      testSprite.position.y = 1;
+      expect(testSprite.position.y).to.equal(testSprite.y);
+      var newValue = 2;
+      testSprite.y = newValue;
+      expect(testSprite.position.y).to.equal(testSprite.y).to.equal(newValue);
+    });
+
+    it('aliases velocity.x to velocityX', function() {
+      testSprite.velocity.x = 1;
+      expect(testSprite.velocity.x).to.equal(testSprite.velocityX);
+      var newValue = 2;
+      testSprite.velocityX = newValue;
+      expect(testSprite.velocity.x).to.equal(testSprite.velocityX).to.equal(newValue);
+    });
+
+    it('aliases velocity.y to velocityY', function() {
+      testSprite.velocity.y = 1;
+      expect(testSprite.velocity.y).to.equal(testSprite.velocityY);
+      var newValue = 2;
+      testSprite.velocityY = newValue;
+      expect(testSprite.velocity.y).to.equal(testSprite.velocityY).to.equal(newValue);
+    });
+
+    it('aliases life to lifetime', function() {
+      testSprite.life = 1;
+      expect(testSprite.life).to.equal(testSprite.lifetime);
+      var newValue = 2;
+      testSprite.lifetime = newValue;
+      expect(testSprite.life).to.equal(testSprite.lifetime).to.equal(newValue);
+    });
+
+    it('aliases restitution to bounciness', function() {
+      testSprite.restitution = 1;
+      expect(testSprite.restitution).to.equal(testSprite.bounciness);
+      var newValue = 2;
+      testSprite.bounciness = newValue;
+      expect(testSprite.restitution).to.equal(testSprite.bounciness).to.equal(newValue);
+    });
+  });
+
+  describe('isTouching', function() {
+    it('returns false if the collider and colliding sprite dont overlap', function() {
+      var sprite1 = pInst.createSprite(0, 0, 100, 100);
+      var sprite2 = pInst.createSprite(200, 200, 100, 100);
+      var isTouching1to2 = sprite1.isTouching(sprite2);
+      var isTouching2to1 = sprite2.isTouching(sprite1);
+      expect(isTouching1to2).to.equal(false).and.to.equal(isTouching2to1);
+    });
+
+    it('returns true if the collider and colliding sprite overlap', function() {
+      var sprite3 = pInst.createSprite(150, 150, 100, 100);
+      var sprite4 = pInst.createSprite(200, 200, 100, 100);
+      var isTouching3to4 = sprite3.isTouching(sprite4);
+      sprite4.isTouching(sprite3);
+      expect(isTouching3to4).to.equal(true).and.to.equal(isTouching3to4);
+
+      var sprite5 = pInst.createSprite(101, 101, 100, 100);
+      var sprite6 = pInst.createSprite(200, 200, 100, 100);
+      var isTouching5to6 = sprite5.isTouching(sprite6);
+      sprite6.isTouching(sprite5);
+      expect(isTouching5to6).to.equal(true).and.to.equal(isTouching5to6);
+    });
+
+    it('does not affect the location of the sprite', function() {
+      var sprite1 = pInst.createSprite(170, 170, 100, 100);
+      var sprite2 = pInst.createSprite(200, 200, 100, 100);
+      var isTouching1to2 = sprite1.isTouching(sprite2);
+      expect(isTouching1to2).to.equal(true);
+      expect(sprite1.x).to.equal(170);
+      expect(sprite1.y).to.equal(170);
+      expect(sprite2.x).to.equal(200);
+      expect(sprite2.y).to.equal(200);
+    });
+
+    it('does not affect the velocity of the sprites', function() {
+      var sprite1 = pInst.createSprite(170, 170, 100, 100);
+      var sprite2 = pInst.createSprite(200, 200, 100, 100);
+      sprite1.velocityX = 1;
+      sprite1.velocityY = 1;
+      sprite2.velocityX = 0;
+      sprite2.velocityY = 0;
+      var isTouching1to2 = sprite1.isTouching(sprite2);
+      expect(isTouching1to2).to.equal(true);
+      expect(sprite1.velocityX).to.equal(1);
+      expect(sprite1.velocityY).to.equal(1);
+      expect(sprite2.velocityX).to.equal(0);
+      expect(sprite2.velocityY).to.equal(0);
+    });
+  });
+
+  describe('width, height', function() {
+    describe('sprites without animations', function() {
+      var sprite1;
+
+      beforeEach(function() {
+        sprite1 = pInst.createSprite(200, 200);
+      });
+
+      it('defaults to 100 by 100 when no width or height are set', function() {
+        expect(sprite1.width).to.equal(100);
+        expect(sprite1.height).to.equal(100);
+      });
+
+      it('gets and sets the same value', function() {
+        sprite1.width = 200;
+        sprite1.height = 450;
+        expect(sprite1.width).to.equal(200);
+        expect(sprite1.height).to.equal(450);
+      });
+
+      it('gets unscaled width and height', function() {
+        sprite1.width = 200;
+        sprite1.height = 450;
+        sprite1.scale = 2;
+        expect(sprite1.width).to.equal(200);
+        expect(sprite1.height).to.equal(450);
+        expect(sprite1.scale).to.equal(2);
+        sprite1.scale = 0.5;
+        expect(sprite1.width).to.equal(200);
+        expect(sprite1.height).to.equal(450);
+        expect(sprite1.scale).to.equal(0.5);
+        sprite1.width = 100;
+        expect(sprite1.width).to.equal(100);
+      });
+    });
+
+    describe('sprites with animations', function() {
+      var sprite;
+      beforeEach(function() {
+        var image = new p5.Image(100, 100, pInst);
+        var frames = [{name: 0, frame: {x: 0, y: 0, width: 50, height: 50}}];
+        var sheet = new pInst.SpriteSheet(image, frames);
+        var animation = new pInst.Animation(sheet);
+        sprite = pInst.createSprite(0, 0);
+        sprite.addAnimation('label', animation);
+      });
+
+      it('defaults to image height and width when no width or height are set', function() {
+        expect(sprite.width).to.equal(50);
+        expect(sprite.height).to.equal(50);
+      });
+
+      it('gets and sets the same value', function() {
+        sprite.width = 150;
+        sprite.height = 200;
+        expect(sprite.width).to.equal(150);
+        expect(sprite.height).to.equal(200);
+      });
+
+      it('gets unscaled width and height', function() {
+        sprite.width = 200;
+        sprite.height = 450;
+        sprite.scale = 2;
+        expect(sprite.width).to.equal(200);
+        expect(sprite.height).to.equal(450);
+        expect(sprite.scale).to.equal(2);
+        sprite.scale = 0.5;
+        expect(sprite.width).to.equal(200);
+        expect(sprite.height).to.equal(450);
+        expect(sprite.scale).to.equal(0.5);
+        sprite.width = 100;
+        expect(sprite.width).to.equal(100);
+      });
+    });
+  });
+
+  describe('getScaledWidth, getScaledHeight', function() {
+    describe('sprites without animations', function() {
+      it('returns width and height when no scale is set', function() {
+        var sprite1 = pInst.createSprite(200, 200);
+        expect(sprite1.getScaledWidth()).to.equal(100);
+        expect(sprite1.getScaledHeight()).to.equal(100);
+        sprite1.width = 200;
+        sprite1.height = 400;
+        expect(sprite1.getScaledWidth()).to.equal(200);
+        expect(sprite1.getScaledHeight()).to.equal(400);
+      });
+
+      it('gets scaled values', function() {
+        var sprite1 = pInst.createSprite(200, 200);
+        sprite1.width = 200;
+        sprite1.height = 450;
+        sprite1.scale = 2;
+        expect(sprite1.getScaledWidth()).to.equal(400);
+        expect(sprite1.getScaledHeight()).to.equal(900);
+        expect(sprite1.scale).to.equal(2);
+        sprite1.scale = 0.5;
+        expect(sprite1.getScaledWidth()).to.equal(100);
+        expect(sprite1.getScaledHeight()).to.equal(225);
+        expect(sprite1.width).to.equal(200);
+        expect(sprite1.height).to.equal(450);
+        expect(sprite1.scale).to.equal(0.5);
+        sprite1.width = 100;
+        expect(sprite1.getScaledWidth()).to.equal(50);
+      });
+    });
+
+    describe('sprites with animations', function() {
+      var sprite1;
+      beforeEach(function() {
+        sprite1 = pInst.createSprite(0, 0);
+        sprite1.addAnimation('label', createTestAnimation());
+      });
+
+      it('returns width and height when no scale is set', function() {
+        expect(sprite1.getScaledWidth()).to.equal(50);
+        expect(sprite1.getScaledHeight()).to.equal(50);
+        sprite1.width = 200;
+        sprite1.height = 400;
+        expect(sprite1.getScaledWidth()).to.equal(200);
+        expect(sprite1.getScaledHeight()).to.equal(400);
+      });
+
+      it('gets scaled values', function() {
+        sprite1.width = 200;
+        sprite1.height = 450;
+        sprite1.scale = 2;
+        expect(sprite1.getScaledWidth()).to.equal(400);
+        expect(sprite1.getScaledHeight()).to.equal(900);
+        expect(sprite1.scale).to.equal(2);
+        sprite1.scale = 0.5;
+        expect(sprite1.getScaledWidth()).to.equal(100);
+        expect(sprite1.getScaledHeight()).to.equal(225);
+        expect(sprite1.width).to.equal(200);
+        expect(sprite1.height).to.equal(450);
+        expect(sprite1.scale).to.equal(0.5);
+        sprite1.width = 100;
+        expect(sprite1.getScaledWidth()).to.equal(50);
+      });
+
+      it('gets scaled values regardless of colliders', function() {
+        var sprite2 = pInst.createSprite(0, 0);
+        sprite2.addAnimation('label', createTestAnimation());
+
+        sprite1.width = 200;
+        sprite1.height = 400;
+        sprite1.scale = 2;
+
+        expect(sprite1.getScaledWidth()).to.equal(400);
+        expect(sprite1.getScaledHeight()).to.equal(800);
+        sprite1.collide(sprite2);
+        expect(sprite1.getScaledWidth()).to.equal(400);
+        expect(sprite1.getScaledHeight()).to.equal(800);
+      });
+    });
+  });
+
+  describe('collision types using AABBOps', function() {
+    var sprite, spriteTarget;
+
+    beforeEach(function() {
+      // sprite in to the left, moving right
+      // spriteTarget in to the right, stationary
+      sprite = pInst.createSprite(281, 100, 20, 20);
+      spriteTarget = pInst.createSprite(300, 100, 20, 20);
+      sprite.velocity.x = 3;
+      spriteTarget.velocity.x = 0;
+
+      expect(sprite.velocity.x).to.equal(3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+    });
+
+    it('stops movement of colliding sprite when sprites bounce', function() {
+      // sprite stops moving, spriteTarget moves right
+      var bounce = sprite.bounce(spriteTarget);
+
+      expect(bounce).to.equal(true);
+
+      expect(sprite.position.x).to.equal(280); // move back to not overlap with spriteTarget
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(0);
+      expect(spriteTarget.velocity.x).to.equal(3);
+
+      sprite.update();
+      spriteTarget.update();
+
+      expect(sprite.position.x).to.equal(280);
+      expect(spriteTarget.position.x).to.equal(303);
+      expect(sprite.velocity.x).to.equal(0);
+      expect(spriteTarget.velocity.x).to.equal(3);
+
+      sprite.bounce(spriteTarget);
+
+      expect(sprite.position.x).to.equal(280);
+      expect(spriteTarget.position.x).to.equal(303);
+      expect(sprite.velocity.x).to.equal(0);
+      expect(spriteTarget.velocity.x).to.equal(3);
+    });
+
+    it('stops movement of colliding sprite when sprites collide', function() {
+      // sprite stops moving, spriteTarget stops moving
+      var collide = sprite.collide(spriteTarget);
+
+      expect(collide).to.equal(true);
+
+      expect(sprite.position.x).to.equal(280);
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(0);
+      expect(spriteTarget.velocity.x).to.equal(0);
+    });
+
+    it('continues movement of colliding sprite when sprites displace', function() {
+      // sprite continues moving, spriteTarget gets pushed by sprite
+      var displace = sprite.displace(spriteTarget);
+
+      expect(displace).to.equal(true);
+      expect(sprite.position.x).to.equal(281);
+      expect(spriteTarget.position.x).to.equal(301);
+      expect(sprite.velocity.x).to.equal(3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+
+      sprite.update();
+      spriteTarget.update();
+
+      expect(sprite.position.x).to.equal(284);
+      expect(spriteTarget.position.x).to.equal(301);
+      expect(sprite.velocity.x).to.equal(3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+
+      // Displace is true again, since sprite keeps moving into spriteTarget
+      var displace2 = sprite.displace(spriteTarget);
+      expect(displace2).to.be.true;
+    });
+
+    it('reverses direction of colliding sprite when sprites bounceOff', function() {
+      // sprite reverses direction of movement, spriteTarget remains in its location
+      var bounceOff = sprite.bounceOff(spriteTarget);
+
+      expect(bounceOff).to.equal(true);
+      expect(sprite.position.x).to.equal(280);
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(-3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+
+      sprite.update();
+      spriteTarget.update();
+
+      expect(bounceOff).to.equal(true);
+      expect(sprite.position.x).to.equal(277);
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(-3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+
+      sprite.bounceOff(spriteTarget);
+
+      expect(bounceOff).to.equal(true);
+      expect(sprite.position.x).to.equal(277);
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(-3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+    });
+
+    it('continues movement of colliding sprite when sprites overlap', function() {
+      // sprite continues moving, spriteTarget remains in it's location
+      var overlap = sprite.overlap(spriteTarget);
+
+      expect(overlap).to.equal(true);
+      expect(sprite.position.x).to.equal(281);
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+
+      sprite.update();
+      spriteTarget.update();
+
+      expect(overlap).to.equal(true);
+      expect(sprite.position.x).to.equal(284);
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+
+      sprite.overlap(spriteTarget);
+
+      expect(overlap).to.equal(true);
+      expect(sprite.position.x).to.equal(284);
+      expect(spriteTarget.position.x).to.equal(300);
+      expect(sprite.velocity.x).to.equal(3);
+      expect(spriteTarget.velocity.x).to.equal(0);
+    });
+
+    it('destroyed sprites do not collide', function() {
+      expect(sprite.overlap(spriteTarget)).to.equal(true);
+      spriteTarget.remove();
+      expect(sprite.overlap(spriteTarget)).to.equal(false);
+      expect(spriteTarget.overlap(sprite)).to.equal(false);
+    });
+  });
+
+  describe('collisions with groups', function() {
+    var sprite, spriteTarget1, spriteTarget2, group;
+
+    beforeEach(function() {
+      spriteTarget1 = pInst.createSprite(0, 0, 100, 100);
+      spriteTarget2 = pInst.createSprite(400, 400, 100, 100);
+      sprite = pInst.createSprite(200, 200, 100, 100);
+      group = pInst.createGroup();
+      group.add(spriteTarget1);
+      group.add(spriteTarget2);
+    });
+
+    it('isTouching returns false when sprite touches nothing in the group', function() {
+      var result = sprite.isTouching(group);
+      expect(result).to.equal(false);
+    });
+
+    it('isTouching returns true when sprite touches anything in the group', function() {
+      spriteTarget1.x = sprite.x;
+      spriteTarget1.y = sprite.y;
+
+      var result2 = sprite.isTouching(group);
+      expect(result2).to.equal(true);
+    });
+
+    it('collide returns false when sprite touches nothing in the group', function() {
+      var result = sprite.collide(group);
+      expect(result).to.equal(false);
+    });
+
+    it('collide returns true when sprite touches anything in the group', function() {
+      spriteTarget1.x = sprite.x;
+      spriteTarget1.y = sprite.y;
+
+      var result2 = sprite.collide(group);
+      expect(result2).to.equal(true);
+    });
+
+    it('bounce returns false when sprite touches nothing in the group', function() {
+      var result = sprite.bounce(group);
+      expect(result).to.equal(false);
+    });
+
+    it('bounce returns true when sprite touches anything in the group', function() {
+      spriteTarget1.x = sprite.x;
+      spriteTarget1.y = sprite.y;
+
+      var result2 = sprite.bounce(group);
+      expect(result2).to.equal(true);
+    });
+
+    it('bounceOff returns false when sprite touches nothing in the group', function() {
+      var result = sprite.bounceOff(group);
+      expect(result).to.equal(false);
+    });
+
+    it('bounceOff returns true when sprite touches anything in the group', function() {
+      spriteTarget1.x = sprite.x;
+      spriteTarget1.y = sprite.y;
+
+      var result2 = sprite.bounceOff(group);
+      expect(result2).to.equal(true);
+    });
+
+    it('displace returns false when sprite touches nothing in the group', function() {
+      var result = sprite.displace(group);
+      expect(result).to.equal(false);
+    });
+
+    it('displace returns true when sprite touches anything in the group', function() {
+      spriteTarget1.x = sprite.x;
+      spriteTarget1.y = sprite.y;
+
+      var result2 = sprite.displace(group);
+      expect(result2).to.equal(true);
+    });
+
+    it('overlap returns false when sprite touches nothing in the group', function() {
+      var result = sprite.overlap(group);
+      expect(result).to.equal(false);
+    });
+
+    it('overlap returns true when sprite touches anything in the group', function() {
+      spriteTarget1.x = sprite.x;
+      spriteTarget1.y = sprite.y;
+
+      var result2 = sprite.overlap(group);
+      expect(result2).to.equal(true);
+    });
+  });
+
+  describe('sprite.collide(sprite)', function() {
+    var SIZE = 10;
+    var pInst;
+    var spriteA, spriteB;
+    var callCount, pairs;
+
+    function testCallback(a, b) {
+      callCount++;
+      pairs.push([a.name, b.name]);
+    }
+
+    function moveAToB(a, b) {
+      a.position.x = b.position.x;
+    }
+
+    beforeEach(function() {
+      pInst = new p5(function() {});
+      callCount = 0;
+      pairs = [];
+
+      function createTestSprite(letter, position) {
+        var sprite = pInst.createSprite(position, 0, SIZE, SIZE);
+        sprite.name = 'sprite' + letter;
+        return sprite;
+      }
+
+      spriteA = createTestSprite('A', 2 * SIZE);
+      spriteB = createTestSprite('B', 4 * SIZE);
+
+      // Assert initial test state:
+      // - Two total sprites
+      // - no two sprites overlap
+      expect(pInst.allSprites.length).to.equal(2);
+      pInst.allSprites.forEach(function(caller) {
+        pInst.allSprites.forEach(function(callee) {
+          expect(caller.overlap(callee)).to.be.false;
+        });
+      });
+    });
+
+    afterEach(function() {
+      pInst.remove();
+    });
+
+    it('false if sprites do not overlap', function() {
+      expect(spriteA.collide(spriteB)).to.be.false;
+      expect(spriteB.collide(spriteA)).to.be.false;
+    });
+
+    it('true if sprites overlap', function() {
+      moveAToB(spriteA, spriteB);
+      expect(spriteA.collide(spriteB)).to.be.true;
+
+      moveAToB(spriteA, spriteB);
+      expect(spriteB.collide(spriteA)).to.be.true;
+    });
+
+    it('calls callback once if sprites overlap', function() {
+      expect(callCount).to.equal(0);
+
+      moveAToB(spriteA, spriteB);
+      spriteA.collide(spriteB, testCallback);
+      expect(callCount).to.equal(1);
+
+      moveAToB(spriteA, spriteB);
+      spriteB.collide(spriteA, testCallback);
+      expect(callCount).to.equal(2);
+    });
+
+    it('does not call callback if sprites do not overlap', function() {
+      expect(callCount).to.equal(0);
+      spriteA.collide(spriteB, testCallback);
+      expect(callCount).to.equal(0);
+      spriteB.collide(spriteA, testCallback);
+      expect(callCount).to.equal(0);
+    });
+
+    describe('passes collider and collidee to callback', function() {
+      it('A-B', function() {
+        moveAToB(spriteA, spriteB);
+        spriteA.collide(spriteB, testCallback);
+        expect(pairs).to.deep.equal([[spriteA.name, spriteB.name]]);
+      });
+
+      it('B-A', function() {
+        moveAToB(spriteA, spriteB);
+        spriteB.collide(spriteA, testCallback);
+        expect(pairs).to.deep.equal([[spriteB.name, spriteA.name]]);
+      });
+    });
+
+    it('does not reposition either sprite when sprites do not overlap', function() {
+      var initialPositionA = spriteA.position.copy();
+      var initialPositionB = spriteB.position.copy();
+
+      spriteA.collide(spriteB);
+
+      expectVectorsAreClose(spriteA.position, initialPositionA);
+      expectVectorsAreClose(spriteB.position, initialPositionB);
+
+      spriteB.collide(spriteA);
+
+      expectVectorsAreClose(spriteA.position, initialPositionA);
+      expectVectorsAreClose(spriteB.position, initialPositionB);
+    });
+
+    describe('displaces the caller out of collision when sprites do overlap', function() {
+      it('to the left', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+
+        var expectedPositionA = spriteB.position.copy().add(-SIZE, 0);
+        var expectedPositionB = spriteB.position.copy();
+
+        spriteA.collide(spriteB);
+
+        expectVectorsAreClose(spriteA.position, expectedPositionA);
+        expectVectorsAreClose(spriteB.position, expectedPositionB);
+      });
+
+      it('to the right', function() {
+        spriteA.position.x = spriteB.position.x + 1;
+
+        var expectedPositionA = spriteB.position.copy().add(SIZE, 0);
+        var expectedPositionB = spriteB.position.copy();
+
+        spriteA.collide(spriteB);
+
+        expectVectorsAreClose(spriteA.position, expectedPositionA);
+        expectVectorsAreClose(spriteB.position, expectedPositionB);
+      });
+
+      it('caller and callee reversed', function() {
+        spriteA.position.x = spriteB.position.x + 1;
+
+        var expectedPositionA = spriteA.position.copy();
+        var expectedPositionB = spriteA.position.copy().add(-SIZE, 0);
+
+        spriteB.collide(spriteA);
+
+        expectVectorsAreClose(spriteA.position, expectedPositionA);
+        expectVectorsAreClose(spriteB.position, expectedPositionB);
+      });
+    });
+
+    it('does not change velocity of either sprite when sprites do not overlap', function() {
+      var initialVelocityA = spriteA.velocity.copy();
+      var initialVelocityB = spriteB.velocity.copy();
+
+      spriteA.collide(spriteB);
+
+      expectVectorsAreClose(spriteA.velocity, initialVelocityA);
+      expectVectorsAreClose(spriteB.velocity, initialVelocityB);
+
+      spriteB.collide(spriteA);
+
+      expectVectorsAreClose(spriteA.velocity, initialVelocityA);
+      expectVectorsAreClose(spriteB.velocity, initialVelocityB);
+    });
+
+    describe('matches caller velocity to callee velocity when sprites do overlap', function() {
+      it('when callee velocity is zero', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 2;
+        spriteB.velocity.x = 0;
+
+        var expectedVelocityA = spriteB.velocity.copy();
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.collide(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('when callee velocity is nonzero', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 2;
+        spriteB.velocity.x = -1;
+
+        var expectedVelocityA = spriteB.velocity.copy();
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.collide(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('only along x axis when only displaced along x axis', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 2;
+        spriteA.velocity.y = 3;
+        spriteB.velocity.x = -1;
+
+        // Expect to change velocity only along X
+        var expectedVelocityA = spriteA.velocity.copy();
+        expectedVelocityA.x = spriteB.velocity.x;
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.collide(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('only along y axis when only displaced along y axis', function() {
+        spriteA.position.x = spriteB.position.x;
+        spriteA.position.y = spriteB.position.y + 1;
+        spriteA.velocity.x = 2;
+        spriteA.velocity.y = 3;
+        spriteB.velocity.x = -1;
+        spriteB.velocity.y = 1.5;
+
+        // Expect to change velocity only along Y
+        var expectedVelocityA = spriteA.velocity.copy();
+        expectedVelocityA.y = spriteB.velocity.y;
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.collide(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('caller and callee reversed', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 2;
+        spriteB.velocity.x = -1;
+
+        var expectedVelocityA = spriteA.velocity.copy();
+        var expectedVelocityB = spriteA.velocity.copy();
+
+        spriteB.collide(spriteA);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+    });
+  });
+
+  describe('sprite.displace(sprite)', function() {
+    var SIZE = 10;
+    var pInst;
+    var spriteA, spriteB;
+    var callCount, pairs;
+
+    function testCallback(a, b) {
+      callCount++;
+      pairs.push([a.name, b.name]);
+    }
+
+    function moveAToB(a, b) {
+      a.position.x = b.position.x;
+    }
+
+    beforeEach(function() {
+      pInst = new p5(function() {
+      });
+      callCount = 0;
+      pairs = [];
+
+      function createTestSprite(letter, position) {
+        var sprite = pInst.createSprite(position, 0, SIZE, SIZE);
+        sprite.name = 'sprite' + letter;
+        return sprite;
+      }
+
+      spriteA = createTestSprite('A', 2 * SIZE);
+      spriteB = createTestSprite('B', 4 * SIZE);
+
+      // Assert initial test state:
+      // - Two total sprites
+      // - no two sprites overlap
+      expect(pInst.allSprites.length).to.equal(2);
+      pInst.allSprites.forEach(function(caller) {
+        pInst.allSprites.forEach(function(callee) {
+          expect(caller.overlap(callee)).to.be.false;
+        });
+      });
+    });
+
+    afterEach(function() {
+      pInst.remove();
+    });
+
+    it('false if sprites do not overlap', function() {
+      expect(spriteA.displace(spriteB)).to.be.false;
+      expect(spriteB.displace(spriteA)).to.be.false;
+    });
+
+    it('true if sprites overlap', function() {
+      moveAToB(spriteA, spriteB);
+      expect(spriteA.displace(spriteB)).to.be.true;
+
+      moveAToB(spriteA, spriteB);
+      expect(spriteB.displace(spriteA)).to.be.true;
+    });
+
+    it('calls callback once if sprites overlap', function() {
+      expect(callCount).to.equal(0);
+
+      moveAToB(spriteA, spriteB);
+      spriteA.displace(spriteB, testCallback);
+      expect(callCount).to.equal(1);
+
+      moveAToB(spriteA, spriteB);
+      spriteB.displace(spriteA, testCallback);
+      expect(callCount).to.equal(2);
+    });
+
+    it('does not call callback if sprites do not overlap', function() {
+      expect(callCount).to.equal(0);
+      spriteA.displace(spriteB, testCallback);
+      expect(callCount).to.equal(0);
+      spriteB.displace(spriteA, testCallback);
+      expect(callCount).to.equal(0);
+    });
+
+    describe('passes collider and collidee to callback', function() {
+      it('A-B', function() {
+        moveAToB(spriteA, spriteB);
+        spriteA.displace(spriteB, testCallback);
+        expect(pairs).to.deep.equal([[spriteA.name, spriteB.name]]);
+      });
+
+      it('B-A', function() {
+        moveAToB(spriteA, spriteB);
+        spriteB.displace(spriteA, testCallback);
+        expect(pairs).to.deep.equal([[spriteB.name, spriteA.name]]);
+      });
+    });
+
+    it('does not reposition either sprite when sprites do not overlap', function() {
+      var initialPositionA = spriteA.position.copy();
+      var initialPositionB = spriteB.position.copy();
+
+      spriteA.displace(spriteB);
+
+      expectVectorsAreClose(spriteA.position, initialPositionA);
+      expectVectorsAreClose(spriteB.position, initialPositionB);
+
+      spriteB.displace(spriteA);
+
+      expectVectorsAreClose(spriteA.position, initialPositionA);
+      expectVectorsAreClose(spriteB.position, initialPositionB);
+    });
+
+    describe('displaces the callee out of collision when sprites do overlap', function() {
+      it('to the left', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+
+        var expectedPositionA = spriteA.position.copy();
+        var expectedPositionB = spriteA.position.copy().add(SIZE, 0);
+
+        spriteA.displace(spriteB);
+
+        expectVectorsAreClose(spriteA.position, expectedPositionA);
+        expectVectorsAreClose(spriteB.position, expectedPositionB);
+      });
+
+      it('to the right', function() {
+        spriteA.position.x = spriteB.position.x + 1;
+
+        var expectedPositionA = spriteA.position.copy();
+        var expectedPositionB = spriteA.position.copy().add(-SIZE, 0);
+
+        spriteA.displace(spriteB);
+
+        expectVectorsAreClose(spriteA.position, expectedPositionA);
+        expectVectorsAreClose(spriteB.position, expectedPositionB);
+      });
+
+      it('caller and callee reversed', function() {
+        spriteA.position.x = spriteB.position.x + 1;
+
+        var expectedPositionA = spriteB.position.copy().add(SIZE, 0);
+        var expectedPositionB = spriteB.position.copy();
+
+        spriteB.displace(spriteA);
+
+        expectVectorsAreClose(spriteA.position, expectedPositionA);
+        expectVectorsAreClose(spriteB.position, expectedPositionB);
+      });
+    });
+
+    it('does not change velocity of either sprite when sprites do not overlap', function() {
+      var initialVelocityA = spriteA.velocity.copy();
+      var initialVelocityB = spriteB.velocity.copy();
+
+      spriteA.displace(spriteB);
+
+      expectVectorsAreClose(spriteA.velocity, initialVelocityA);
+      expectVectorsAreClose(spriteB.velocity, initialVelocityB);
+
+      spriteB.displace(spriteA);
+
+      expectVectorsAreClose(spriteA.velocity, initialVelocityA);
+      expectVectorsAreClose(spriteB.velocity, initialVelocityB);
+    });
+
+    describe('does not change callee velocity', function() {
+      it('when caller velocity is zero', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 0;
+        spriteB.velocity.x = 2;
+
+        var expectedVelocityA = spriteA.velocity.copy();
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.displace(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('when caller velocity is nonzero', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 2;
+        spriteB.velocity.x = -1;
+
+        var expectedVelocityA = spriteA.velocity.copy();
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.displace(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('when only displaced along x axis', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 2;
+        spriteA.velocity.y = 0.5;
+        spriteB.velocity.x = -1;
+        spriteB.velocity.y = 3;
+
+        var expectedVelocityA = spriteA.velocity.copy();
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.displace(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('when only displaced along y axis', function() {
+        spriteA.position.x = spriteB.position.x;
+        spriteA.position.y = spriteB.position.y + 1;
+        spriteA.velocity.x = 2;
+        spriteA.velocity.y = 3;
+        spriteB.velocity.x = -1;
+        spriteB.velocity.y = 1.5;
+
+        var expectedVelocityA = spriteA.velocity.copy();
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteA.displace(spriteB);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+
+      it('caller and callee reversed', function() {
+        spriteA.position.x = spriteB.position.x - 1;
+        spriteA.velocity.x = 2;
+        spriteB.velocity.x = -1;
+
+        var expectedVelocityA = spriteA.velocity.copy();
+        var expectedVelocityB = spriteB.velocity.copy();
+
+        spriteB.displace(spriteA);
+
+        expectVectorsAreClose(spriteA.velocity, expectedVelocityA);
+        expectVectorsAreClose(spriteB.velocity, expectedVelocityB);
+      });
+    });
+  });
+
+  function createTestAnimation(frameCount, looping) {
+    if (frameCount === undefined) {
+      frameCount = 1;
+    }
+    if (looping === undefined) {
+      looping = true;
+    }
+    var image = new p5.Image(100, 100, pInst);
+    var frames = [];
+    for (var i = 0; i < frameCount; i++) {
+      frames.push({name: i, frame: {x: 0, y: 0, width: 50, height: 50}});
+    }
+    var sheet = new pInst.SpriteSheet(image, frames);
+    var animation = new pInst.Animation(sheet);
+    animation.looping = looping;
+    animation.frameDelay = 1;
+    return animation;
+  }
+
+  function expectVectorsAreClose(vA, vB) {
+    var failMsg = 'Expected <' + vA.x + ', ' + vA.y + '> to equal <' +
+    vB.x + ', ' + vB.y + '>';
+    expect(vA.x).to.be.closeTo(vB.x, 0.00001, failMsg);
+    expect(vA.y).to.be.closeTo(vB.y, 0.00001, failMsg);
+  }
 });
