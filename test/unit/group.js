@@ -278,4 +278,197 @@ describe('Group', function() {
       expect(group.minDepth()).to.equal(bottomSprite.depth);
     });
   });
+
+  describe('methods applying to each sprite', function() {
+    it('setSpeedAndDirectionEach calls setSpeedAndDirection for each member', function() {
+      var sprite1 = pInst.createSprite(0, 0);
+      var sprite2 = pInst.createSprite(0, 0);
+      var group = pInst.createGroup();
+      group.add(sprite1);
+      group.add(sprite2);
+      sinon.spy(sprite1, 'setSpeedAndDirection');
+      sinon.spy(sprite2, 'setSpeedAndDirection');
+      expect(sprite1.setSpeedAndDirection.calledOnce).to.be.false;
+      expect(sprite2.setSpeedAndDirection.calledOnce).to.be.false;
+
+      var speed = 5;
+      var direction = 180;
+      group.setSpeedAndDirectionEach(speed, direction);
+      expect(sprite1.setSpeedAndDirection.calledOnce).to.be.true;
+      expect(sprite2.setSpeedAndDirection.calledOnce).to.be.true;
+      expect(sprite1.setSpeedAndDirection.calledWith(speed, direction)).to.be.true;
+      expect(sprite2.setSpeedAndDirection.calledWith(speed, direction)).to.be.true;
+    });
+
+    it('removes every element', function() {
+      var group = pInst.createGroup();
+      for (var i = 0; i < 2; i++) {
+        group.add(pInst.createSprite(0, 0));
+      }
+      group.destroyEach();
+
+      expect(group).to.be.empty;
+    });
+  });
+
+  describe('collision methods', function() {
+    var sprite1, sprite2, targetSprite, group;
+
+    beforeEach(function() {
+      sprite1 = pInst.createSprite(0, 0, 100, 100);
+      sprite2 = pInst.createSprite(400, 400, 100, 100);
+      targetSprite = pInst.createSprite(200, 200, 100, 100);
+      group = pInst.createGroup();
+      group.add(sprite1);
+      group.add(sprite2);
+    });
+
+    describe('no sprite in group overlaps target sprite', function() {
+      it('returns false for isTouching', function() {
+        var result = group.isTouching(targetSprite);
+        expect(result).to.equal(false);
+      });
+
+      it('returns false for collide', function() {
+        var result = group.collide(targetSprite);
+        expect(result).to.equal(false);
+      });
+
+      it('returns false for bounce', function() {
+        var result = group.bounce(targetSprite);
+        expect(result).to.equal(false);
+      });
+
+      it('returns false for bounceOff', function() {
+        var result = group.bounceOff(targetSprite);
+        expect(result).to.equal(false);
+      });
+
+      it('returns false for overlap', function() {
+        var result = group.overlap(targetSprite);
+        expect(result).to.equal(false);
+      });
+
+      it('returns false for displace', function() {
+        var result = group.displace(targetSprite);
+        expect(result).to.equal(false);
+      });
+    });
+
+    describe('first sprite in group overlaps target sprite', function() {
+      beforeEach(function() {
+        // Make sprite1 overlap with target sprite
+        sprite1.x = targetSprite.x;
+        sprite1.y = targetSprite.y;
+      });
+
+      it('returns true for isTouching', function() {
+        var result = group.isTouching(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for collide', function() {
+        var result = group.collide(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for bounce', function() {
+        var result = group.bounce(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for bounceOff', function() {
+        var result = group.bounceOff(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for overlap', function() {
+        var result = group.overlap(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for displace', function() {
+        var result = group.displace(targetSprite);
+        expect(result).to.equal(true);
+      });
+    });
+
+    describe('last sprite in group overlaps target sprite', function() {
+      beforeEach(function() {
+        // Make sprite1 overlap with target sprite
+        sprite2.x = targetSprite.x;
+        sprite2.y = targetSprite.y;
+      });
+
+      it('returns true for isTouching', function() {
+        var result = group.isTouching(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for collide', function() {
+        var result = group.collide(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for bounce', function() {
+        var result = group.bounce(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for bounceOff', function() {
+        var result = group.bounceOff(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for overlap', function() {
+        var result = group.overlap(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for displace', function() {
+        var result = group.displace(targetSprite);
+        expect(result).to.equal(true);
+      });
+    });
+
+    describe('every sprite in group overlaps target sprite', function() {
+      beforeEach(function() {
+        // Make sprite1 overlap with target sprite
+        sprite1.x = targetSprite.x;
+        sprite1.y = targetSprite.y;
+        sprite2.x = targetSprite.x;
+        sprite2.y = targetSprite.y;
+      });
+
+      it('returns true for isTouching', function() {
+        var result = group.isTouching(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for collide', function() {
+        var result = group.collide(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for bounce', function() {
+        var result = group.bounce(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for bounceOff', function() {
+        var result = group.bounceOff(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for overlap', function() {
+        var result = group.overlap(targetSprite);
+        expect(result).to.equal(true);
+      });
+
+      it('returns true for displace', function() {
+        var result = group.displace(targetSprite);
+        expect(result).to.equal(true);
+      });
+    });
+  });
 });
