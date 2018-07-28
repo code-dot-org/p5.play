@@ -1,4 +1,5 @@
 describe('Sprite', function() {
+  var expectVectorsAreClose = p5PlayAssertions.expectVectorsAreClose;
   var MARGIN_OF_ERROR = 0.0000001;
   var pInst;
 
@@ -1716,12 +1717,5 @@ describe('Sprite', function() {
     animation.looping = looping;
     animation.frameDelay = 1;
     return animation;
-  }
-
-  function expectVectorsAreClose(vA, vB) {
-    var failMsg = 'Expected <' + vA.x + ', ' + vA.y + '> to equal <' +
-    vB.x + ', ' + vB.y + '>';
-    expect(vA.x).to.be.closeTo(vB.x, 0.00001, failMsg);
-    expect(vA.y).to.be.closeTo(vB.y, 0.00001, failMsg);
   }
 });
