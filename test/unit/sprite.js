@@ -1700,6 +1700,79 @@ describe('Sprite', function() {
     });
   });
 
+  describe('_fixedSpriteAnimationFrameSizes property', function() {
+    var pInst, testAnimation;
+
+    beforeEach(function() {
+      pInst = new p5(function() {});
+      // Create a test animation where the initial frame size is 50x50,
+      // the next frame is 50x60, and the 3rd is 50x70:
+      testAnimation = createTestAnimation(3, false, 10);
+    });
+
+    afterEach(function() {
+      pInst.remove();
+    });
+
+    describe('_fixedSpriteAnimationFrameSizes is true', function() {
+      var sprite;
+
+      beforeEach(function() {
+        pInst._fixedSpriteAnimationFrameSizes = true;
+        sprite = pInst.createSprite(0, 0);
+        sprite.addAnimation('testAnim', testAnimation);
+      });
+
+      it('initial sprite dimensions come from animation first frame size', function() {
+        expect(sprite.width).to.equal(50);
+        expect(sprite.height).to.equal(50);
+      });
+
+      it('sprite dimensions stay fixed when advancing to different animation frame sizes', function() {
+        sprite.update();
+        expect(sprite.width).to.equal(50);
+        expect(sprite.height).to.equal(50);
+      });
+
+      it('allows sprite dimensions to be changed when animation is set with different frame size', function() {
+        sprite.width = 190;
+        sprite.height = 80;
+        sprite.update();
+        expect(sprite.width).to.equal(190);
+        expect(sprite.height).to.equal(80);
+      });
+    });
+
+    describe('_fixedSpriteAnimationFrameSizes is false', function() {
+      var sprite;
+
+      beforeEach(function() {
+        pInst._fixedSpriteAnimationFrameSizes = false;
+        sprite = pInst.createSprite(0, 0);
+        sprite.addAnimation('testAnim', testAnimation);
+      });
+
+      it('initial sprite dimensions come from animation first frame size', function() {
+        expect(sprite.width).to.equal(50);
+        expect(sprite.height).to.equal(50);
+      });
+
+      it('sprite dimensions change when advancing to different animation frame sizes', function() {
+        sprite.update();
+        expect(sprite.width).to.equal(50);
+        expect(sprite.height).to.equal(60);
+      });
+
+      it('does not allow sprite dimensions to be changed when animation is set with different frame size', function() {
+        sprite.width = 190;
+        sprite.height = 80;
+        sprite.update();
+        expect(sprite.width).to.equal(50);
+        expect(sprite.height).to.equal(60);
+      });
+    });
+  });
+
   describe('setAnimation(label)', function() {
     var ANIMATION_LABEL = 'animation1', SECOND_ANIMATION_LABEL = 'animation2';
     var sprite, predefinedSpriteAnimations;
@@ -1877,17 +1950,22 @@ describe('Sprite', function() {
     expect(anim1.looping).to.equal(anim2.looping);
   }
 
-  function createTestAnimation(frameCount, looping) {
+  function createTestAnimation(frameCount, looping, heightIncreasePerFrame) {
     if (frameCount === undefined) {
       frameCount = 1;
     }
     if (looping === undefined) {
       looping = true;
     }
+    if (heightIncreasePerFrame === undefined) {
+      heightIncreasePerFrame = 0;
+    }
     var image = new p5.Image(100, 100, pInst);
     var frames = [];
+    var nextHeight = 50;
     for (var i = 0; i < frameCount; i++) {
-      frames.push({name: i, frame: {x: 0, y: 0, width: 50, height: 50}});
+      frames.push({name: i, frame: {x: 0, y: 0, width: 50, height: nextHeight}});
+      nextHeight += heightIncreasePerFrame;
     }
     var sheet = new pInst.SpriteSheet(image, frames);
     var animation = new pInst.Animation(sheet);
