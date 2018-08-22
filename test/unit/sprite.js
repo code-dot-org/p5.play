@@ -1700,6 +1700,183 @@ describe('Sprite', function() {
     });
   });
 
+  describe('setAnimation(label)', function() {
+    var ANIMATION_LABEL = 'animation1', SECOND_ANIMATION_LABEL = 'animation2';
+    var sprite, predefinedSpriteAnimations;
+
+    beforeEach(function() {
+      sprite = pInst.createSprite(0, 0);
+
+      // We manually preload animations onto pInst._predefinedSpriteAnimations for the use of
+      // setAnimation.
+      predefinedSpriteAnimations = {};
+      predefinedSpriteAnimations[ANIMATION_LABEL] = createTestAnimation(8);
+      predefinedSpriteAnimations[SECOND_ANIMATION_LABEL] = createTestAnimation(10);
+      pInst._predefinedSpriteAnimations = predefinedSpriteAnimations;
+    });
+
+    it('throws if the named animation is not found in the project', function() {
+      expect(function() {
+        sprite.setAnimation('fakeAnimation');
+      }).to.throw('Unable to find an animation named "fakeAnimation".  Please make sure the animation exists.');
+    });
+
+    it('makes the named animaiton the current animation, if the animation is found', function() {
+      sprite.setAnimation(ANIMATION_LABEL);
+
+      // Current animation label should be animation label
+      expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+
+      // Current animation will be a clone of the project animation:
+      expectAnimationsAreClones(sprite.animation, predefinedSpriteAnimations[ANIMATION_LABEL]);
+    });
+
+    it('changes the animation to first frame and plays it by default', function() {
+      sprite.setAnimation(ANIMATION_LABEL);
+
+      // Animation is at frame 1
+      expect(sprite.animation.getFrame()).to.equal(0);
+
+      // Animation is playing
+      expect(sprite.animation.playing).to.be.true;
+    });
+
+    describe('repeat call', function() {
+      beforeEach(function() {
+        // Set first animation and advance a few frames, to simulate an
+        // animation in the middle of playback.
+        sprite.setAnimation(ANIMATION_LABEL);
+        sprite.animation.changeFrame(3);
+      });
+
+      it('resets the current frame if called with a new animation', function() {
+        expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+        expect(sprite.animation.getFrame()).to.equal(3);
+
+        sprite.setAnimation(SECOND_ANIMATION_LABEL);
+
+        expect(sprite.getAnimationLabel()).to.equal(SECOND_ANIMATION_LABEL);
+        expect(sprite.animation.getFrame()).to.equal(0);
+      });
+
+      it('does not reset the current frame if called with the current animation', function() {
+        expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+        expect(sprite.animation.getFrame()).to.equal(3);
+
+        sprite.setAnimation(ANIMATION_LABEL);
+
+        expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+        expect(sprite.animation.getFrame()).to.equal(3);
+      });
+
+      it('unpasuses a paused sprite if called with a new animation', function() {
+        sprite.pause();
+        expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+        expect(sprite.animation.playing).to.be.false;
+
+        sprite.setAnimation(SECOND_ANIMATION_LABEL);
+
+        expect(sprite.getAnimationLabel()).to.equal(SECOND_ANIMATION_LABEL);
+        expect(sprite.animation.playing).to.be.true;
+      });
+
+      it('does not unpause a paused sprite if called with the current animation', function() {
+        expect(sprite.animation.playing).to.be.true;
+        sprite.pause();
+        expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+        expect(sprite.animation.playing).to.be.false;
+
+        sprite.setAnimation(ANIMATION_LABEL);
+
+        expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+        expect(sprite.animation.playing).to.be.false;
+      });
+
+      // Applies to both cases, so unify them
+      forEveryBooleanPermutation(function(same) {
+        var description = same ? 'called with the current animation' : 'called with a new animation';
+        var label = same ? ANIMATION_LABEL : SECOND_ANIMATION_LABEL;
+        it('does not pause a playing sprite if ' + description, function() {
+          expect(sprite.getAnimationLabel()).to.equal(ANIMATION_LABEL);
+          expect(sprite.animation.playing).to.be.true;
+
+          sprite.setAnimation(label);
+
+          expect(sprite.getAnimationLabel()).to.equal(label);
+          expect(sprite.animation.playing).to.be.true;
+        });
+      });
+    });
+  });
+
+  /**
+   * Given a function with n required boolean arguments, invokes the
+   * function 2^n times, once with every possible permutation of arguments.
+   * If the given function has no arguments it will be invoked once.
+   * @param {function} fn
+   * @example
+   *   forEveryBooleanPermutation((a, b) => {
+   *     console.log(a, b);
+   *   });
+   *   // Runs four times, logging:
+   *   // false, false
+   *   // false, true
+   *   // true, false
+   *   // true, true
+   */
+  function forEveryBooleanPermutation(fn) {
+    var argCount = fn.length;
+    var numPermutations = Math.pow(2, argCount);
+    for (var i = 0; i < numPermutations; i++) {
+      fn.apply(null, getBooleanPermutation(i, argCount));
+    }
+  }
+
+  function zeroPadLeft(string, desiredWidth) {
+    var zeroPad = '';
+    for (var i = 0; i < desiredWidth; i++) {
+      zeroPad = zeroPad + '0';
+    }
+    return (zeroPad + string).slice(-desiredWidth);
+  }
+
+  function getBooleanPermutation(n, numberOfBooleans) {
+    return zeroPadLeft(n.toString(2), numberOfBooleans) // Padded binary string
+        .split('') // to array of '0' and '1'
+        .map(function(x) {
+          return x === '1';
+        }); // to array of booleans
+  }
+
+  function expectSpriteSheetsAreClones(sheet1, sheet2) {
+    // Not identical
+    expect(sheet1).not.to.equal(sheet2);
+    // But frame array is same size
+    // Note: Would check deep equal but cloning frames adds 'name' property in
+    //       some cases
+    expect(sheet1.frames.length).to.equal(sheet2.frames.length);
+    // And other props exactly equal
+    expect(sheet1.image).to.equal(sheet2.image);
+    expect(sheet1.frame_width).to.equal(sheet2.frame_width);
+    expect(sheet1.frame_height).to.equal(sheet2.frame_height);
+    expect(sheet1.num_frames).to.equal(sheet2.num_frames);
+  }
+
+  function expectAnimationsAreClones(anim1, anim2) {
+    // Not identical
+    expect(anim1).not.to.equal(anim2);
+    // But spritesheet is a clone
+    expectSpriteSheetsAreClones(anim1.spriteSheet, anim2.spriteSheet);
+    // And image array is deep equal
+    expect(anim1.images).to.deep.equal(anim2.images);
+    // And other props are exactly equal
+    expect(anim1.offX).to.equal(anim2.offX);
+    expect(anim1.offY).to.equal(anim2.offY);
+    expect(anim1.frameDelay).to.equal(anim2.frameDelay);
+    expect(anim1.playing).to.equal(anim2.playing);
+    expect(anim1.looping).to.equal(anim2.looping);
+  }
+
   function createTestAnimation(frameCount, looping) {
     if (frameCount === undefined) {
       frameCount = 1;
