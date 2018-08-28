@@ -1376,7 +1376,7 @@
             "line": 1766,
             "description": "Sprite y velocity (alias to velocity.y).",
             "itemtype": "property",
-            "name": "y",
+            "name": "velocityY",
             "type": "{Number}",
             "class": "Sprite",
             "module": "p5.play",
