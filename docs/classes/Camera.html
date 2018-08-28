@@ -115,6 +115,7 @@ cycle for example to draw interface elements in an absolute position.</p>
 		<li>
 			<strong>Methods</strong>
 			<ul>
+				<li class=""><a href="#method-isActive"><span class="im">isActive</span>()</a></li>
 				<li class=""><a href="#method-off"><span class="im">off</span>()</a></li>
 				<li class=""><a href="#method-on"><span class="im">on</span>()</a></li>
 			</ul>
@@ -127,6 +128,8 @@ cycle for example to draw interface elements in an absolute position.</p>
 				<li class=""><a href="#prop-mouseX"><span class="ip">mouseX</span></a></li>
 				<li class=""><a href="#prop-mouseY"><span class="ip">mouseY</span></a></li>
 				<li class=""><a href="#prop-position"><span class="ip">position</span></a></li>
+				<li class=""><a href="#prop-x"><span class="ip">x</span></a></li>
+				<li class=""><a href="#prop-y"><span class="ip">y</span></a></li>
 				<li class=""><a href="#prop-zoom"><span class="ip">zoom</span></a></li>
 			</ul>
 		</li>
@@ -167,7 +170,7 @@ cycle for example to draw interface elements in an absolute position.</p>
 	<div class="meta">
 				<p>
 				Defined in
-		<a href="../files/lib_p5.play.js.html#l2399"><code>lib&#x2F;p5.play.js:2399</code></a>
+		<a href="../files/lib_p5.play.js.html#l3212"><code>lib&#x2F;p5.play.js:3212</code></a>
 		</p>
 
 
@@ -217,6 +220,48 @@ cycle for example to draw interface elements in an absolute position.</p>
     <div id="methods" class="page-section">
         <h2 class="off-left">Methods</h2>
         <div class="item-list">
+<div id="method-isActive" class="method item ">
+	<div class="method-signature">
+	<span class="name"><code>isActive</code></span>
+
+		<span class="paren">()</span>
+		<span class="returns-inline">
+			<span class="type">Boolean</span>
+		</span>
+	</div>
+
+
+
+
+
+
+	<div class="meta">
+				<p>
+				Defined in
+		<a href="../files/lib_p5.play.js.html#l3311"><code>lib&#x2F;p5.play.js:3311</code></a>
+		</p>
+
+
+
+	</div>
+
+	<div class="description"><p>Check to see if the camera is active.
+Use the methods Camera.on() and Camera.off()
+to enable or disable the camera.</p>
+</div>
+
+
+		<div class="returns">
+			<h4>Returns:</h4>
+
+			<div class="returns-description">
+						<span class="type">Boolean</span>:
+					<p>true if the camera is active</p>
+
+			</div>
+		</div>
+
+</div>
 <div id="method-off" class="method item ">
 	<div class="method-signature">
 	<span class="name"><code>off</code></span>
@@ -232,7 +277,7 @@ cycle for example to draw interface elements in an absolute position.</p>
 	<div class="meta">
 				<p>
 				Defined in
-		<a href="../files/lib_p5.play.js.html#l2481"><code>lib&#x2F;p5.play.js:2481</code></a>
+		<a href="../files/lib_p5.play.js.html#l3338"><code>lib&#x2F;p5.play.js:3338</code></a>
 		</p>
 
 
@@ -262,7 +307,7 @@ and scale until Camera.on() is called</p>
 	<div class="meta">
 				<p>
 				Defined in
-		<a href="../files/lib_p5.play.js.html#l2466"><code>lib&#x2F;p5.play.js:2466</code></a>
+		<a href="../files/lib_p5.play.js.html#l3323"><code>lib&#x2F;p5.play.js:3323</code></a>
 		</p>
 
 
@@ -295,7 +340,7 @@ Camera.off() is called</p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/lib_p5.play.js.html#l2456"><code>lib&#x2F;p5.play.js:2456</code></a>
+        <a href="../files/lib_p5.play.js.html#l3301"><code>lib&#x2F;p5.play.js:3301</code></a>
         </p>
 
 
@@ -322,7 +367,7 @@ to enable or disable the camera.</p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/lib_p5.play.js.html#l2434"><code>lib&#x2F;p5.play.js:2434</code></a>
+        <a href="../files/lib_p5.play.js.html#l3279"><code>lib&#x2F;p5.play.js:3279</code></a>
         </p>
 
 
@@ -350,7 +395,7 @@ position if the camera moved or zoomed.</p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/lib_p5.play.js.html#l2445"><code>lib&#x2F;p5.play.js:2445</code></a>
+        <a href="../files/lib_p5.play.js.html#l3290"><code>lib&#x2F;p5.play.js:3290</code></a>
         </p>
 
 
@@ -378,7 +423,7 @@ position if the camera moved or zoomed.</p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/lib_p5.play.js.html#l2416"><code>lib&#x2F;p5.play.js:2416</code></a>
+        <a href="../files/lib_p5.play.js.html#l3229"><code>lib&#x2F;p5.play.js:3229</code></a>
         </p>
 
 
@@ -386,6 +431,56 @@ position if the camera moved or zoomed.</p>
 
     <div class="description">
         <p>Camera position. Defines the global offset of the sketch.</p>
+
+    </div>
+
+
+
+</div>
+<div id="prop-x" class="property item ">
+    <h3 class="name"><code>x</code></h3>
+    <span class="type">Number</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/lib_p5.play.js.html#l3237"><code>lib&#x2F;p5.play.js:3237</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Camera x position. Defines the horizontal global offset of the sketch.</p>
+
+    </div>
+
+
+
+</div>
+<div id="prop-y" class="property item ">
+    <h3 class="name"><code>y</code></h3>
+    <span class="type">Number</span>
+
+
+
+
+
+    <div class="meta">
+                <p>
+                Defined in
+        <a href="../files/lib_p5.play.js.html#l3253"><code>lib&#x2F;p5.play.js:3253</code></a>
+        </p>
+
+
+    </div>
+
+    <div class="description">
+        <p>Camera y position. Defines the horizontal global offset of the sketch.</p>
 
     </div>
 
@@ -403,7 +498,7 @@ position if the camera moved or zoomed.</p>
     <div class="meta">
                 <p>
                 Defined in
-        <a href="../files/lib_p5.play.js.html#l2424"><code>lib&#x2F;p5.play.js:2424</code></a>
+        <a href="../files/lib_p5.play.js.html#l3269"><code>lib&#x2F;p5.play.js:3269</code></a>
         </p>
 
 
