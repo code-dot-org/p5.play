@@ -47,4 +47,21 @@ describe('General', function() {
       expect(pInst.topEdge.height).to.equal(100);
     });
   });
+
+  describe('World.seconds', function() {
+    it('returns time passed in seconds', function() {
+      sinon.stub(Date.prototype, 'getTime');
+      // Time at the start of the program.
+      Date.prototype.getTime.onCall(0).returns(5300);
+      // Time when seconds gets called.
+      Date.prototype.getTime.onCall(1).returns(10000);
+
+      // Re-init p5 to capture the _startTime
+      pInst.remove();
+      pInst = new p5(function() {});
+
+      expect(pInst.World.seconds).to.equal(5);
+      Date.prototype.getTime.restore();
+    });
+  });
 });
