@@ -14,8 +14,11 @@
     <script>
       mocha.ui('bdd');
       expect = chai.expect;
+      window.performance = window.performance || {
+        now: Date.now
+      };
     </script>
-    <script src="../examples/lib/p5.js"></script>
+    <script src="../node_modules/p5/lib/p5.js"></script>
     <script src="../lib/p5.play.js"></script>
     <script src="unit/axis-aligned-bounding-box.js"></script>
     <script src="unit/animation.js"></script>

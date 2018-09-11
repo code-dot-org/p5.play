@@ -73,7 +73,7 @@ describe('Example sketches', function() {
         '<h1>Example: ' + fileName + '</h1>',
         '<div id="myP5"></div>',
         '<script src="../test/js/bind.js"></script>',
-        '<script src="lib/p5.js"></script>',
+        '<script src="../node_modules/p5/lib/p5.js"></script>',
         '<script>' + iframeScriptCode + '</script>',
         '<script src="../lib/p5.play.js"></script>',
         '<script src="' + fileName + '"></script>'
