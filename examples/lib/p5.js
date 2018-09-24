@@ -1,4 +1,4 @@
-/*! p5.js v0.5.4 October 01, 2016 */
+/*! p5.js v0.5.4a October 01, 2016 (with cdo applied leak fix September 21, 2018) */
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.p5 = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 
 },{}],2:[function(_dereq_,module,exports){
@@ -8988,6 +8988,15 @@ var p5 = function(sketch, node, sync) {
   this._events.wheel = null;
   this._loadingScreenId = 'p5_loading';
 
+  // Allows methods to be registered on an instance that
+  // are instance-specific.
+  this._registeredMethods = {};
+  var methods = Object.getOwnPropertyNames(p5.prototype._registeredMethods);
+  for(var i = 0; i < methods.length; i++) {
+    var prop = methods[i];
+    this._registeredMethods[prop] = p5.prototype._registeredMethods[prop].slice();
+  }
+
   if (window.DeviceOrientationEvent) {
     this._events.deviceorientation = null;
   }
@@ -9362,10 +9371,11 @@ p5.prototype.registerPreloadMethod = function(fnString, obj) {
 };
 
 p5.prototype.registerMethod = function(name, m) {
-  if (!p5.prototype._registeredMethods.hasOwnProperty(name)) {
-    p5.prototype._registeredMethods[name] = [];
+  var target = this || p5.prototype;
+  if (!target._registeredMethods.hasOwnProperty(name)) {
+    target._registeredMethods[name] = [];
   }
-  p5.prototype._registeredMethods[name].push(m);
+  target._registeredMethods[name].push(m);
 };
 
 p5.prototype._createFriendlyGlobalFunctionBinder = function(options) {
