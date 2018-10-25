@@ -12338,25 +12338,17 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   if (!img.canvas) {
     return img;
   }
-  var pixels = filters._toPixels(img.canvas);
-  var tmpCanvas = document.createElement('canvas');
-  tmpCanvas.width = img.canvas.width;
-  tmpCanvas.height = img.canvas.height;
-  var tmpCtx = tmpCanvas.getContext('2d');
-  var id = tmpCtx.createImageData(img.canvas.width, img.canvas.height);
-  var newPixels = id.data;
-  for (var i = 0; i < pixels.length; i += 4) {
-    var r = pixels[i];
-    var g = pixels[i + 1];
-    var b = pixels[i + 2];
-    var a = pixels[i + 3];
-    newPixels[i] = r * this._tint[0] / 255;
-    newPixels[i + 1] = g * this._tint[1] / 255;
-    newPixels[i + 2] = b * this._tint[2] / 255;
-    newPixels[i + 3] = a * this._tint[3] / 255;
-  }
-  tmpCtx.putImageData(id, 0, 0);
-  return tmpCanvas;
+  this._tintCanvas = this._tintCanvas || document.createElement('canvas');
+  this._tintCanvas.width = img.canvas.width;
+  this._tintCanvas.height = img.canvas.height;
+  var tmpCtx = this._tintCanvas.getContext('2d');
+  tmpCtx.fillStyle = 'hsl(' + this._pInst.hue(this._tint) + ', 100%, 50%)';
+  tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
+  tmpCtx.globalCompositeOperation = 'destination-atop';
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width, this._tintCanvas.height);
+  tmpCtx.globalCompositeOperation = 'multiply';
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width, this._tintCanvas.height);
+  return this._tintCanvas;
 };
 
 
