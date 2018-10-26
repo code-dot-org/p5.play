@@ -1,4 +1,4 @@
-/*! p5.js v0.5.4a October 01, 2016 (with cdo applied leak fix September 21, 2018) */
+/*! p5.js v0.5.4-cdo October 26, 2018 */
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.p5 = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 
 },{}],2:[function(_dereq_,module,exports){
@@ -287,22 +287,24 @@ function Font(options) {
     options = options || {};
 
     // OS X will complain if the names are empty, so we put a single space everywhere by default.
-    this.familyName = options.familyName || ' ';
-    this.styleName = options.styleName || ' ';
-    this.designer = options.designer || ' ';
-    this.designerURL = options.designerURL || ' ';
-    this.manufacturer = options.manufacturer || ' ';
-    this.manufacturerURL = options.manufacturerURL || ' ';
-    this.license = options.license || ' ';
-    this.licenseURL = options.licenseURL || ' ';
-    this.version = options.version || 'Version 0.1';
-    this.description = options.description || ' ';
-    this.copyright = options.copyright || ' ';
-    this.trademark = options.trademark || ' ';
+    this.names = {
+        fontFamily: {en: options.familyName || ' '},
+        fontSubfamily: {en: options.styleName || ' '},
+        designer: {en: options.designer || ' '},
+        designerURL: {en: options.designerURL || ' '},
+        manufacturer: {en: options.manufacturer || ' '},
+        manufacturerURL: {en: options.manufacturerURL || ' '},
+        license: {en: options.license || ' '},
+        licenseURL: {en: options.licenseURL || ' '},
+        version: {en: options.version || 'Version 0.1'},
+        description: {en: options.description || ' '},
+        copyright: {en: options.copyright || ' '},
+        trademark: {en: options.trademark || ' '}
+    };
     this.unitsPerEm = options.unitsPerEm || 1000;
     this.ascender = options.ascender;
     this.descender = options.descender;
-    this.supported = true;
+    this.supported = true; // Deprecated: parseBuffer will throw an error if font is not supported.
     this.glyphs = new glyphset.GlyphSet(this, options.glyphs || []);
     this.encoding = new encoding.DefaultEncoding(this);
     this.tables = {};
@@ -386,10 +388,6 @@ Font.prototype.getKerningValue = function(leftGlyph, rightGlyph) {
 // Helper function that invokes the given callback for each glyph in the given text.
 // The callback gets `(glyph, x, y, fontSize, options)`.
 Font.prototype.forEachGlyph = function(text, x, y, fontSize, options, callback) {
-    if (!this.supported) {
-        return;
-    }
-
     x = x !== undefined ? x : 0;
     y = y !== undefined ? y : 0;
     fontSize = fontSize !== undefined ? fontSize : 72;
@@ -478,6 +476,13 @@ Font.prototype.drawMetrics = function(ctx, text, x, y, fontSize, options) {
     });
 };
 
+Font.prototype.getEnglishName = function(name) {
+    var translations = this.names[name];
+    if (translations) {
+        return translations.en;
+    }
+};
+
 // Validate
 Font.prototype.validate = function() {
     var warnings = [];
@@ -489,16 +494,18 @@ Font.prototype.validate = function() {
         }
     }
 
-    function assertStringAttribute(attrName) {
-        assert(_this[attrName] && _this[attrName].trim().length > 0, 'No ' + attrName + ' specified.');
+    function assertNamePresent(name) {
+        var englishName = _this.getEnglishName(name);
+        assert(englishName && englishName.trim().length > 0,
+               'No English ' + name + ' specified.');
     }
 
     // Identification information
-    assertStringAttribute('familyName');
-    assertStringAttribute('weightName');
-    assertStringAttribute('manufacturer');
-    assertStringAttribute('copyright');
-    assertStringAttribute('version');
+    assertNamePresent('fontFamily');
+    assertNamePresent('weightName');
+    assertNamePresent('manufacturer');
+    assertNamePresent('copyright');
+    assertNamePresent('version');
 
     // Dimension information
     assert(this.unitsPerEm > 0, 'No unitsPerEm specified.');
@@ -524,7 +531,9 @@ Font.prototype.toBuffer = function() {
 
 // Initiate a download of the OpenType font.
 Font.prototype.download = function() {
-    var fileName = this.familyName.replace(/\s/g, '') + '-' + this.styleName + '.otf';
+    var familyName = this.getEnglishName('fontFamily');
+    var styleName = this.getEnglishName('fontSubfamily');
+    var fileName = familyName.replace(/\s/g, '') + '-' + styleName + '.otf';
     var buffer = this.toBuffer();
 
     window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
@@ -550,7 +559,7 @@ Font.prototype.download = function() {
 
 exports.Font = Font;
 
-},{"./encoding":4,"./glyphset":7,"./path":10,"./tables/sfnt":25}],6:[function(_dereq_,module,exports){
+},{"./encoding":4,"./glyphset":7,"./path":10,"./tables/sfnt":27}],6:[function(_dereq_,module,exports){
 // The Glyph object
 
 'use strict';
@@ -719,6 +728,23 @@ Glyph.prototype.getMetrics = function() {
         yMax: Math.max.apply(null, yCoords),
         leftSideBearing: 0
     };
+
+    if (!isFinite(metrics.xMin)) {
+        metrics.xMin = 0;
+    }
+
+    if (!isFinite(metrics.xMax)) {
+        metrics.xMax = this.advanceWidth;
+    }
+
+    if (!isFinite(metrics.yMin)) {
+        metrics.yMin = 0;
+    }
+
+    if (!isFinite(metrics.yMax)) {
+        metrics.yMax = 0;
+    }
+
     metrics.rightSideBearing = this.advanceWidth - metrics.leftSideBearing - (metrics.xMax - metrics.xMin);
     return metrics;
 };
@@ -924,12 +950,14 @@ var path = _dereq_('./path');
 
 var cmap = _dereq_('./tables/cmap');
 var cff = _dereq_('./tables/cff');
+var fvar = _dereq_('./tables/fvar');
 var glyf = _dereq_('./tables/glyf');
 var gpos = _dereq_('./tables/gpos');
 var head = _dereq_('./tables/head');
 var hhea = _dereq_('./tables/hhea');
 var hmtx = _dereq_('./tables/hmtx');
 var kern = _dereq_('./tables/kern');
+var ltag = _dereq_('./tables/ltag');
 var loca = _dereq_('./tables/loca');
 var maxp = _dereq_('./tables/maxp');
 var _name = _dereq_('./tables/name');
@@ -978,16 +1006,19 @@ function loadFromUrl(url, callback) {
 // Public API ///////////////////////////////////////////////////////////
 
 // Parse the OpenType file data (as an ArrayBuffer) and return a Font object.
-// If the file could not be parsed (most likely because it contains Postscript outlines)
-// we return an empty Font object with the `supported` flag set to `false`.
+// Throws an error if the font could not be parsed.
 function parseBuffer(buffer) {
     var indexToLocFormat;
-    var hmtxOffset;
-    var glyfOffset;
-    var locaOffset;
+    var ltagTable;
+
     var cffOffset;
-    var kernOffset;
+    var fvarOffset;
+    var glyfOffset;
     var gposOffset;
+    var hmtxOffset;
+    var kernOffset;
+    var locaOffset;
+    var nameOffset;
 
     // OpenType fonts use big endian byte ordering.
     // We can't rely on typed array view types, because they operate with the endianness of the host computer.
@@ -1019,10 +1050,9 @@ function parseBuffer(buffer) {
         case 'cmap':
             font.tables.cmap = cmap.parse(data, offset);
             font.encoding = new encoding.CmapEncoding(font.tables.cmap);
-            if (!font.encoding) {
-                font.supported = false;
-            }
-
+            break;
+        case 'fvar':
+            fvarOffset = offset;
             break;
         case 'head':
             font.tables.head = head.parse(data, offset);
@@ -1038,14 +1068,15 @@ function parseBuffer(buffer) {
         case 'hmtx':
             hmtxOffset = offset;
             break;
+        case 'ltag':
+            ltagTable = ltag.parse(data, offset);
+            break;
         case 'maxp':
             font.tables.maxp = maxp.parse(data, offset);
             font.numGlyphs = font.tables.maxp.numGlyphs;
             break;
         case 'name':
-            font.tables.name = _name.parse(data, offset);
-            font.familyName = font.tables.name.fontFamily;
-            font.styleName = font.tables.name.fontSubfamily;
+            nameOffset = offset;
             break;
         case 'OS/2':
             font.tables.os2 = os2.parse(data, offset);
@@ -1073,29 +1104,34 @@ function parseBuffer(buffer) {
         p += 16;
     }
 
+    font.tables.name = _name.parse(data, nameOffset, ltagTable);
+    font.names = font.tables.name;
+
     if (glyfOffset && locaOffset) {
         var shortVersion = indexToLocFormat === 0;
         var locaTable = loca.parse(data, locaOffset, font.numGlyphs, shortVersion);
         font.glyphs = glyf.parse(data, glyfOffset, locaTable, font);
-        hmtx.parse(data, hmtxOffset, font.numberOfHMetrics, font.numGlyphs, font.glyphs);
-        encoding.addGlyphNames(font);
     } else if (cffOffset) {
         cff.parse(data, cffOffset, font);
-        encoding.addGlyphNames(font);
     } else {
-        font.supported = false;
+        throw new Error('Font doesn\'t contain TrueType or CFF outlines.');
     }
 
-    if (font.supported) {
-        if (kernOffset) {
-            font.kerningPairs = kern.parse(data, kernOffset);
-        } else {
-            font.kerningPairs = {};
-        }
+    hmtx.parse(data, hmtxOffset, font.numberOfHMetrics, font.numGlyphs, font.glyphs);
+    encoding.addGlyphNames(font);
 
-        if (gposOffset) {
-            gpos.parse(data, gposOffset, font);
-        }
+    if (kernOffset) {
+        font.kerningPairs = kern.parse(data, kernOffset);
+    } else {
+        font.kerningPairs = {};
+    }
+
+    if (gposOffset) {
+        gpos.parse(data, gposOffset, font);
+    }
+
+    if (fvarOffset) {
+        font.tables.fvar = fvar.parse(data, fvarOffset, font.names);
     }
 
     return font;
@@ -1116,12 +1152,16 @@ function load(url, callback) {
         }
 
         var font = parseBuffer(arrayBuffer);
-        if (!font.supported) {
-            return callback('Font is not supported (is this a Postscript font?)');
-        }
-
         return callback(null, font);
     });
+}
+
+// Syncronously load the font from a URL or file.
+// When done, return the font object or throw an error.
+function loadSync(url) {
+    var fs = _dereq_('fs');
+    var buffer = fs.readFileSync(url);
+    return parseBuffer(toArrayBuffer(buffer));
 }
 
 exports._parse = parse;
@@ -1130,8 +1170,9 @@ exports.Glyph = glyph.Glyph;
 exports.Path = path.Path;
 exports.parse = parseBuffer;
 exports.load = load;
+exports.loadSync = loadSync;
 
-},{"./encoding":4,"./font":5,"./glyph":6,"./parse":9,"./path":10,"./tables/cff":12,"./tables/cmap":13,"./tables/glyf":14,"./tables/gpos":15,"./tables/head":16,"./tables/hhea":17,"./tables/hmtx":18,"./tables/kern":19,"./tables/loca":20,"./tables/maxp":21,"./tables/name":22,"./tables/os2":23,"./tables/post":24,"fs":1}],9:[function(_dereq_,module,exports){
+},{"./encoding":4,"./font":5,"./glyph":6,"./parse":9,"./path":10,"./tables/cff":12,"./tables/cmap":13,"./tables/fvar":14,"./tables/glyf":15,"./tables/gpos":16,"./tables/head":17,"./tables/hhea":18,"./tables/hmtx":19,"./tables/kern":20,"./tables/loca":21,"./tables/ltag":22,"./tables/maxp":23,"./tables/name":24,"./tables/os2":25,"./tables/post":26,"fs":1}],9:[function(_dereq_,module,exports){
 // Parsing utility functions
 
 'use strict';
@@ -1572,7 +1613,7 @@ Table.prototype.encode = function() {
 
 exports.Table = Table;
 
-},{"./check":2,"./types":26}],12:[function(_dereq_,module,exports){
+},{"./check":2,"./types":28}],12:[function(_dereq_,module,exports){
 // The `CFF` table contains the glyph outlines in PostScript format.
 // https://www.microsoft.com/typography/OTSPEC/cff.htm
 // http://download.microsoft.com/download/8/0/1/801a191c-029d-4af3-9642-555f6fe514ee/cff.pdf
@@ -2883,6 +2924,154 @@ exports.parse = parseCmapTable;
 exports.make = makeCmapTable;
 
 },{"../check":2,"../parse":9,"../table":11}],14:[function(_dereq_,module,exports){
+// The `fvar` table stores font variation axes and instances.
+// https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fvar.html
+
+'use strict';
+
+var check = _dereq_('../check');
+var parse = _dereq_('../parse');
+var table = _dereq_('../table');
+
+function addName(name, names) {
+    var nameString = JSON.stringify(name);
+    var nameID = 256;
+    for (var nameKey in names) {
+        var n = parseInt(nameKey);
+        if (!n || n < 256) {
+            continue;
+        }
+
+        if (JSON.stringify(names[nameKey]) === nameString) {
+            return n;
+        }
+
+        if (nameID <= n) {
+            nameID = n + 1;
+        }
+    }
+
+    names[nameID] = name;
+    return nameID;
+}
+
+function makeFvarAxis(axis, names) {
+    var nameID = addName(axis.name, names);
+    return new table.Table('fvarAxis', [
+        {name: 'tag', type: 'TAG', value: axis.tag},
+        {name: 'minValue', type: 'FIXED', value: axis.minValue << 16},
+        {name: 'defaultValue', type: 'FIXED', value: axis.defaultValue << 16},
+        {name: 'maxValue', type: 'FIXED', value: axis.maxValue << 16},
+        {name: 'flags', type: 'USHORT', value: 0},
+        {name: 'nameID', type: 'USHORT', value: nameID}
+    ]);
+}
+
+function parseFvarAxis(data, start, names) {
+    var axis = {};
+    var p = new parse.Parser(data, start);
+    axis.tag = p.parseTag();
+    axis.minValue = p.parseFixed();
+    axis.defaultValue = p.parseFixed();
+    axis.maxValue = p.parseFixed();
+    p.skip('uShort', 1);  // reserved for flags; no values defined
+    axis.name = names[p.parseUShort()] || {};
+    return axis;
+}
+
+function makeFvarInstance(inst, axes, names) {
+    var nameID = addName(inst.name, names);
+    var fields = [
+        {name: 'nameID', type: 'USHORT', value: nameID},
+        {name: 'flags', type: 'USHORT', value: 0}
+    ];
+
+    for (var i = 0; i < axes.length; ++i) {
+        var axisTag = axes[i].tag;
+        fields.push({
+            name: 'axis ' + axisTag,
+            type: 'FIXED',
+            value: inst.coordinates[axisTag] << 16
+        });
+    }
+
+    return new table.Table('fvarInstance', fields);
+}
+
+function parseFvarInstance(data, start, axes, names) {
+    var inst = {};
+    var p = new parse.Parser(data, start);
+    inst.name = names[p.parseUShort()] || {};
+    p.skip('uShort', 1);  // reserved for flags; no values defined
+
+    inst.coordinates = {};
+    for (var i = 0; i < axes.length; ++i) {
+        inst.coordinates[axes[i].tag] = p.parseFixed();
+    }
+
+    return inst;
+}
+
+function makeFvarTable(fvar, names) {
+    var result = new table.Table('fvar', [
+        {name: 'version', type: 'ULONG', value: 0x10000},
+        {name: 'offsetToData', type: 'USHORT', value: 0},
+        {name: 'countSizePairs', type: 'USHORT', value: 2},
+        {name: 'axisCount', type: 'USHORT', value: fvar.axes.length},
+        {name: 'axisSize', type: 'USHORT', value: 20},
+        {name: 'instanceCount', type: 'USHORT', value: fvar.instances.length},
+        {name: 'instanceSize', type: 'USHORT', value: 4 + fvar.axes.length * 4}
+    ]);
+    result.offsetToData = result.sizeOf();
+
+    for (var i = 0; i < fvar.axes.length; i++) {
+        result.fields.push({
+            name: 'axis ' + i,
+            type: 'TABLE',
+            value: makeFvarAxis(fvar.axes[i], names)});
+    }
+
+    for (var j = 0; j < fvar.instances.length; j++) {
+        result.fields.push({
+            name: 'instance ' + j,
+            type: 'TABLE',
+            value: makeFvarInstance(fvar.instances[j], fvar.axes, names)
+        });
+    }
+
+    return result;
+}
+
+function parseFvarTable(data, start, names) {
+    var p = new parse.Parser(data, start);
+    var tableVersion = p.parseULong();
+    check.argument(tableVersion === 0x00010000, 'Unsupported fvar table version.');
+    var offsetToData = p.parseOffset16();
+    // Skip countSizePairs.
+    p.skip('uShort', 1);
+    var axisCount = p.parseUShort();
+    var axisSize = p.parseUShort();
+    var instanceCount = p.parseUShort();
+    var instanceSize = p.parseUShort();
+
+    var axes = [];
+    for (var i = 0; i < axisCount; i++) {
+        axes.push(parseFvarAxis(data, start + offsetToData + i * axisSize, names));
+    }
+
+    var instances = [];
+    var instanceStart = start + offsetToData + axisCount * axisSize;
+    for (var j = 0; j < instanceCount; j++) {
+        instances.push(parseFvarInstance(data, instanceStart + j * instanceSize, axes, names));
+    }
+
+    return {axes:axes, instances:instances};
+}
+
+exports.make = makeFvarTable;
+exports.parse = parseFvarTable;
+
+},{"../check":2,"../parse":9,"../table":11}],15:[function(_dereq_,module,exports){
 // The `glyf` table describes the glyphs in TrueType outline format.
 // http://www.microsoft.com/typography/otspec/glyf.htm
 
@@ -3152,6 +3341,8 @@ function buildPath(glyphs, glyph) {
         for (var j = 0; j < glyph.components.length; j += 1) {
             var component = glyph.components[j];
             var componentGlyph = glyphs.get(component.glyphIndex);
+            // Force the ttfGlyphLoader to parse the glyph.
+            componentGlyph.getPath();
             if (componentGlyph.points) {
                 var transformedPoints = transformPoints(componentGlyph.points, component);
                 glyph.points = glyph.points.concat(transformedPoints);
@@ -3183,7 +3374,7 @@ function parseGlyfTable(data, start, loca, font) {
 
 exports.parse = parseGlyfTable;
 
-},{"../check":2,"../glyphset":7,"../parse":9,"../path":10}],15:[function(_dereq_,module,exports){
+},{"../check":2,"../glyphset":7,"../parse":9,"../path":10}],16:[function(_dereq_,module,exports){
 // The `GPOS` table contains kerning pairs, among other things.
 // https://www.microsoft.com/typography/OTSPEC/gpos.htm
 
@@ -3424,7 +3615,7 @@ function parseGposTable(data, start, font) {
 
 exports.parse = parseGposTable;
 
-},{"../check":2,"../parse":9}],16:[function(_dereq_,module,exports){
+},{"../check":2,"../parse":9}],17:[function(_dereq_,module,exports){
 // The `head` table contains global information about the font.
 // https://www.microsoft.com/typography/OTSPEC/head.htm
 
@@ -3484,7 +3675,7 @@ function makeHeadTable(options) {
 exports.parse = parseHeadTable;
 exports.make = makeHeadTable;
 
-},{"../check":2,"../parse":9,"../table":11}],17:[function(_dereq_,module,exports){
+},{"../check":2,"../parse":9,"../table":11}],18:[function(_dereq_,module,exports){
 // The `hhea` table contains information for horizontal layout.
 // https://www.microsoft.com/typography/OTSPEC/hhea.htm
 
@@ -3539,7 +3730,7 @@ function makeHheaTable(options) {
 exports.parse = parseHheaTable;
 exports.make = makeHheaTable;
 
-},{"../parse":9,"../table":11}],18:[function(_dereq_,module,exports){
+},{"../parse":9,"../table":11}],19:[function(_dereq_,module,exports){
 // The `hmtx` table contains the horizontal metrics for all glyphs.
 // https://www.microsoft.com/typography/OTSPEC/hmtx.htm
 
@@ -3583,7 +3774,7 @@ function makeHmtxTable(glyphs) {
 exports.parse = parseHmtxTable;
 exports.make = makeHmtxTable;
 
-},{"../parse":9,"../table":11}],19:[function(_dereq_,module,exports){
+},{"../parse":9,"../table":11}],20:[function(_dereq_,module,exports){
 // The `kern` table contains kerning pairs.
 // Note that some fonts use the GPOS OpenType layout table to specify kerning.
 // https://www.microsoft.com/typography/OTSPEC/kern.htm
@@ -3620,7 +3811,7 @@ function parseKernTable(data, start) {
 
 exports.parse = parseKernTable;
 
-},{"../check":2,"../parse":9}],20:[function(_dereq_,module,exports){
+},{"../check":2,"../parse":9}],21:[function(_dereq_,module,exports){
 // The `loca` table stores the offsets to the locations of the glyphs in the font.
 // https://www.microsoft.com/typography/OTSPEC/loca.htm
 
@@ -3655,7 +3846,70 @@ function parseLocaTable(data, start, numGlyphs, shortVersion) {
 
 exports.parse = parseLocaTable;
 
-},{"../parse":9}],21:[function(_dereq_,module,exports){
+},{"../parse":9}],22:[function(_dereq_,module,exports){
+// The `ltag` table stores IETF BCP-47 language tags. It allows supporting
+// languages for which TrueType does not assign a numeric code.
+// https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6ltag.html
+// http://www.w3.org/International/articles/language-tags/
+// http://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
+
+'use strict';
+
+var check = _dereq_('../check');
+var parse = _dereq_('../parse');
+var table = _dereq_('../table');
+
+function makeLtagTable(tags) {
+    var result = new table.Table('ltag', [
+        {name: 'version', type: 'ULONG', value: 1},
+        {name: 'flags', type: 'ULONG', value: 0},
+        {name: 'numTags', type: 'ULONG', value: tags.length}
+    ]);
+
+    var stringPool = '';
+    var stringPoolOffset = 12 + tags.length * 4;
+    for (var i = 0; i < tags.length; ++i) {
+        var pos = stringPool.indexOf(tags[i]);
+        if (pos < 0) {
+            pos = stringPool.length;
+            stringPool += tags[i];
+        }
+
+        result.fields.push({name: 'offset ' + i, type: 'USHORT', value: stringPoolOffset + pos});
+        result.fields.push({name: 'length ' + i, type: 'USHORT', value: tags[i].length});
+    }
+
+    result.fields.push({name: 'stringPool', type: 'CHARARRAY', value: stringPool});
+    return result;
+}
+
+function parseLtagTable(data, start) {
+    var p = new parse.Parser(data, start);
+    var tableVersion = p.parseULong();
+    check.argument(tableVersion === 1, 'Unsupported ltag table version.');
+    // The 'ltag' specification does not define any flags; skip the field.
+    p.skip('uLong', 1);
+    var numTags = p.parseULong();
+
+    var tags = [];
+    for (var i = 0; i < numTags; i++) {
+        var tag = '';
+        var offset = start + p.parseUShort();
+        var length = p.parseUShort();
+        for (var j = offset; j < offset + length; ++j) {
+            tag += String.fromCharCode(data.getInt8(j));
+        }
+
+        tags.push(tag);
+    }
+
+    return tags;
+}
+
+exports.make = makeLtagTable;
+exports.parse = parseLtagTable;
+
+},{"../check":2,"../parse":9,"../table":11}],23:[function(_dereq_,module,exports){
 // The `maxp` table establishes the memory requirements for the font.
 // We need it just to get the number of glyphs in the font.
 // https://www.microsoft.com/typography/OTSPEC/maxp.htm
@@ -3700,13 +3954,15 @@ function makeMaxpTable(numGlyphs) {
 exports.parse = parseMaxpTable;
 exports.make = makeMaxpTable;
 
-},{"../parse":9,"../table":11}],22:[function(_dereq_,module,exports){
+},{"../parse":9,"../table":11}],24:[function(_dereq_,module,exports){
 // The `name` naming table.
 // https://www.microsoft.com/typography/OTSPEC/name.htm
 
 'use strict';
 
-var encode = _dereq_('../types').encode;
+var types = _dereq_('../types');
+var decode = types.decode;
+var encode = types.encode;
 var parse = _dereq_('../parse');
 var table = _dereq_('../table');
 
@@ -3737,51 +3993,653 @@ var nameTableNames = [
     'wwsSubfamily'            // 22
 ];
 
-// Parse the naming `name` table
-// Only Windows Unicode English names are supported.
-// Format 1 additional fields are not supported
-function parseNameTable(data, start) {
+var macLanguages = {
+    0: 'en',
+    1: 'fr',
+    2: 'de',
+    3: 'it',
+    4: 'nl',
+    5: 'sv',
+    6: 'es',
+    7: 'da',
+    8: 'pt',
+    9: 'no',
+    10: 'he',
+    11: 'ja',
+    12: 'ar',
+    13: 'fi',
+    14: 'el',
+    15: 'is',
+    16: 'mt',
+    17: 'tr',
+    18: 'hr',
+    19: 'zh-Hant',
+    20: 'ur',
+    21: 'hi',
+    22: 'th',
+    23: 'ko',
+    24: 'lt',
+    25: 'pl',
+    26: 'hu',
+    27: 'es',
+    28: 'lv',
+    29: 'se',
+    30: 'fo',
+    31: 'fa',
+    32: 'ru',
+    33: 'zh',
+    34: 'nl-BE',
+    35: 'ga',
+    36: 'sq',
+    37: 'ro',
+    38: 'cz',
+    39: 'sk',
+    40: 'si',
+    41: 'yi',
+    42: 'sr',
+    43: 'mk',
+    44: 'bg',
+    45: 'uk',
+    46: 'be',
+    47: 'uz',
+    48: 'kk',
+    49: 'az-Cyrl',
+    50: 'az-Arab',
+    51: 'hy',
+    52: 'ka',
+    53: 'mo',
+    54: 'ky',
+    55: 'tg',
+    56: 'tk',
+    57: 'mn-CN',
+    58: 'mn',
+    59: 'ps',
+    60: 'ks',
+    61: 'ku',
+    62: 'sd',
+    63: 'bo',
+    64: 'ne',
+    65: 'sa',
+    66: 'mr',
+    67: 'bn',
+    68: 'as',
+    69: 'gu',
+    70: 'pa',
+    71: 'or',
+    72: 'ml',
+    73: 'kn',
+    74: 'ta',
+    75: 'te',
+    76: 'si',
+    77: 'my',
+    78: 'km',
+    79: 'lo',
+    80: 'vi',
+    81: 'id',
+    82: 'tl',
+    83: 'ms',
+    84: 'ms-Arab',
+    85: 'am',
+    86: 'ti',
+    87: 'om',
+    88: 'so',
+    89: 'sw',
+    90: 'rw',
+    91: 'rn',
+    92: 'ny',
+    93: 'mg',
+    94: 'eo',
+    128: 'cy',
+    129: 'eu',
+    130: 'ca',
+    131: 'la',
+    132: 'qu',
+    133: 'gn',
+    134: 'ay',
+    135: 'tt',
+    136: 'ug',
+    137: 'dz',
+    138: 'jv',
+    139: 'su',
+    140: 'gl',
+    141: 'af',
+    142: 'br',
+    143: 'iu',
+    144: 'gd',
+    145: 'gv',
+    146: 'ga',
+    147: 'to',
+    148: 'el-polyton',
+    149: 'kl',
+    150: 'az',
+    151: 'nn'
+};
+
+// MacOS language ID → MacOS script ID
+//
+// Note that the script ID is not sufficient to determine what encoding
+// to use in TrueType files. For some languages, MacOS used a modification
+// of a mainstream script. For example, an Icelandic name would be stored
+// with smRoman in the TrueType naming table, but the actual encoding
+// is a special Icelandic version of the normal Macintosh Roman encoding.
+// As another example, Inuktitut uses an 8-bit encoding for Canadian Aboriginal
+// Syllables but MacOS had run out of available script codes, so this was
+// done as a (pretty radical) "modification" of Ethiopic.
+//
+// http://unicode.org/Public/MAPPINGS/VENDORS/APPLE/Readme.txt
+var macLanguageToScript = {
+    0: 0,  // langEnglish → smRoman
+    1: 0,  // langFrench → smRoman
+    2: 0,  // langGerman → smRoman
+    3: 0,  // langItalian → smRoman
+    4: 0,  // langDutch → smRoman
+    5: 0,  // langSwedish → smRoman
+    6: 0,  // langSpanish → smRoman
+    7: 0,  // langDanish → smRoman
+    8: 0,  // langPortuguese → smRoman
+    9: 0,  // langNorwegian → smRoman
+    10: 5,  // langHebrew → smHebrew
+    11: 1,  // langJapanese → smJapanese
+    12: 4,  // langArabic → smArabic
+    13: 0,  // langFinnish → smRoman
+    14: 6,  // langGreek → smGreek
+    15: 0,  // langIcelandic → smRoman (modified)
+    16: 0,  // langMaltese → smRoman
+    17: 0,  // langTurkish → smRoman (modified)
+    18: 0,  // langCroatian → smRoman (modified)
+    19: 2,  // langTradChinese → smTradChinese
+    20: 4,  // langUrdu → smArabic
+    21: 9,  // langHindi → smDevanagari
+    22: 21,  // langThai → smThai
+    23: 3,  // langKorean → smKorean
+    24: 29,  // langLithuanian → smCentralEuroRoman
+    25: 29,  // langPolish → smCentralEuroRoman
+    26: 29,  // langHungarian → smCentralEuroRoman
+    27: 29,  // langEstonian → smCentralEuroRoman
+    28: 29,  // langLatvian → smCentralEuroRoman
+    29: 0,  // langSami → smRoman
+    30: 0,  // langFaroese → smRoman (modified)
+    31: 4,  // langFarsi → smArabic (modified)
+    32: 7,  // langRussian → smCyrillic
+    33: 25,  // langSimpChinese → smSimpChinese
+    34: 0,  // langFlemish → smRoman
+    35: 0,  // langIrishGaelic → smRoman (modified)
+    36: 0,  // langAlbanian → smRoman
+    37: 0,  // langRomanian → smRoman (modified)
+    38: 29,  // langCzech → smCentralEuroRoman
+    39: 29,  // langSlovak → smCentralEuroRoman
+    40: 0,  // langSlovenian → smRoman (modified)
+    41: 5,  // langYiddish → smHebrew
+    42: 7,  // langSerbian → smCyrillic
+    43: 7,  // langMacedonian → smCyrillic
+    44: 7,  // langBulgarian → smCyrillic
+    45: 7,  // langUkrainian → smCyrillic (modified)
+    46: 7,  // langByelorussian → smCyrillic
+    47: 7,  // langUzbek → smCyrillic
+    48: 7,  // langKazakh → smCyrillic
+    49: 7,  // langAzerbaijani → smCyrillic
+    50: 4,  // langAzerbaijanAr → smArabic
+    51: 24,  // langArmenian → smArmenian
+    52: 23,  // langGeorgian → smGeorgian
+    53: 7,  // langMoldavian → smCyrillic
+    54: 7,  // langKirghiz → smCyrillic
+    55: 7,  // langTajiki → smCyrillic
+    56: 7,  // langTurkmen → smCyrillic
+    57: 27,  // langMongolian → smMongolian
+    58: 7,  // langMongolianCyr → smCyrillic
+    59: 4,  // langPashto → smArabic
+    60: 4,  // langKurdish → smArabic
+    61: 4,  // langKashmiri → smArabic
+    62: 4,  // langSindhi → smArabic
+    63: 26,  // langTibetan → smTibetan
+    64: 9,  // langNepali → smDevanagari
+    65: 9,  // langSanskrit → smDevanagari
+    66: 9,  // langMarathi → smDevanagari
+    67: 13,  // langBengali → smBengali
+    68: 13,  // langAssamese → smBengali
+    69: 11,  // langGujarati → smGujarati
+    70: 10,  // langPunjabi → smGurmukhi
+    71: 12,  // langOriya → smOriya
+    72: 17,  // langMalayalam → smMalayalam
+    73: 16,  // langKannada → smKannada
+    74: 14,  // langTamil → smTamil
+    75: 15,  // langTelugu → smTelugu
+    76: 18,  // langSinhalese → smSinhalese
+    77: 19,  // langBurmese → smBurmese
+    78: 20,  // langKhmer → smKhmer
+    79: 22,  // langLao → smLao
+    80: 30,  // langVietnamese → smVietnamese
+    81: 0,  // langIndonesian → smRoman
+    82: 0,  // langTagalog → smRoman
+    83: 0,  // langMalayRoman → smRoman
+    84: 4,  // langMalayArabic → smArabic
+    85: 28,  // langAmharic → smEthiopic
+    86: 28,  // langTigrinya → smEthiopic
+    87: 28,  // langOromo → smEthiopic
+    88: 0,  // langSomali → smRoman
+    89: 0,  // langSwahili → smRoman
+    90: 0,  // langKinyarwanda → smRoman
+    91: 0,  // langRundi → smRoman
+    92: 0,  // langNyanja → smRoman
+    93: 0,  // langMalagasy → smRoman
+    94: 0,  // langEsperanto → smRoman
+    128: 0,  // langWelsh → smRoman (modified)
+    129: 0,  // langBasque → smRoman
+    130: 0,  // langCatalan → smRoman
+    131: 0,  // langLatin → smRoman
+    132: 0,  // langQuechua → smRoman
+    133: 0,  // langGuarani → smRoman
+    134: 0,  // langAymara → smRoman
+    135: 7,  // langTatar → smCyrillic
+    136: 4,  // langUighur → smArabic
+    137: 26,  // langDzongkha → smTibetan
+    138: 0,  // langJavaneseRom → smRoman
+    139: 0,  // langSundaneseRom → smRoman
+    140: 0,  // langGalician → smRoman
+    141: 0,  // langAfrikaans → smRoman
+    142: 0,  // langBreton → smRoman (modified)
+    143: 28,  // langInuktitut → smEthiopic (modified)
+    144: 0,  // langScottishGaelic → smRoman (modified)
+    145: 0,  // langManxGaelic → smRoman (modified)
+    146: 0,  // langIrishGaelicScript → smRoman (modified)
+    147: 0,  // langTongan → smRoman
+    148: 6,  // langGreekAncient → smRoman
+    149: 0,  // langGreenlandic → smRoman
+    150: 0,  // langAzerbaijanRoman → smRoman
+    151: 0   // langNynorsk → smRoman
+};
+
+// While Microsoft indicates a region/country for all its language
+// IDs, we omit the region code if it's equal to the "most likely
+// region subtag" according to Unicode CLDR. For scripts, we omit
+// the subtag if it is equal to the Suppress-Script entry in the
+// IANA language subtag registry for IETF BCP 47.
+//
+// For example, Microsoft states that its language code 0x041A is
+// Croatian in Croatia. We transform this to the BCP 47 language code 'hr'
+// and not 'hr-HR' because Croatia is the default country for Croatian,
+// according to Unicode CLDR. As another example, Microsoft states
+// that 0x101A is Croatian (Latin) in Bosnia-Herzegovina. We transform
+// this to 'hr-BA' and not 'hr-Latn-BA' because Latin is the default script
+// for the Croatian language, according to IANA.
+//
+// http://www.unicode.org/cldr/charts/latest/supplemental/likely_subtags.html
+// http://www.iana.org/assignments/language-subtag-registry/language-subtag-registry
+var windowsLanguages = {
+    0x0436: 'af',
+    0x041C: 'sq',
+    0x0484: 'gsw',
+    0x045E: 'am',
+    0x1401: 'ar-DZ',
+    0x3C01: 'ar-BH',
+    0x0C01: 'ar',
+    0x0801: 'ar-IQ',
+    0x2C01: 'ar-JO',
+    0x3401: 'ar-KW',
+    0x3001: 'ar-LB',
+    0x1001: 'ar-LY',
+    0x1801: 'ary',
+    0x2001: 'ar-OM',
+    0x4001: 'ar-QA',
+    0x0401: 'ar-SA',
+    0x2801: 'ar-SY',
+    0x1C01: 'aeb',
+    0x3801: 'ar-AE',
+    0x2401: 'ar-YE',
+    0x042B: 'hy',
+    0x044D: 'as',
+    0x082C: 'az-Cyrl',
+    0x042C: 'az',
+    0x046D: 'ba',
+    0x042D: 'eu',
+    0x0423: 'be',
+    0x0845: 'bn',
+    0x0445: 'bn-IN',
+    0x201A: 'bs-Cyrl',
+    0x141A: 'bs',
+    0x047E: 'br',
+    0x0402: 'bg',
+    0x0403: 'ca',
+    0x0C04: 'zh-HK',
+    0x1404: 'zh-MO',
+    0x0804: 'zh',
+    0x1004: 'zh-SG',
+    0x0404: 'zh-TW',
+    0x0483: 'co',
+    0x041A: 'hr',
+    0x101A: 'hr-BA',
+    0x0405: 'cs',
+    0x0406: 'da',
+    0x048C: 'prs',
+    0x0465: 'dv',
+    0x0813: 'nl-BE',
+    0x0413: 'nl',
+    0x0C09: 'en-AU',
+    0x2809: 'en-BZ',
+    0x1009: 'en-CA',
+    0x2409: 'en-029',
+    0x4009: 'en-IN',
+    0x1809: 'en-IE',
+    0x2009: 'en-JM',
+    0x4409: 'en-MY',
+    0x1409: 'en-NZ',
+    0x3409: 'en-PH',
+    0x4809: 'en-SG',
+    0x1C09: 'en-ZA',
+    0x2C09: 'en-TT',
+    0x0809: 'en-GB',
+    0x0409: 'en',
+    0x3009: 'en-ZW',
+    0x0425: 'et',
+    0x0438: 'fo',
+    0x0464: 'fil',
+    0x040B: 'fi',
+    0x080C: 'fr-BE',
+    0x0C0C: 'fr-CA',
+    0x040C: 'fr',
+    0x140C: 'fr-LU',
+    0x180C: 'fr-MC',
+    0x100C: 'fr-CH',
+    0x0462: 'fy',
+    0x0456: 'gl',
+    0x0437: 'ka',
+    0x0C07: 'de-AT',
+    0x0407: 'de',
+    0x1407: 'de-LI',
+    0x1007: 'de-LU',
+    0x0807: 'de-CH',
+    0x0408: 'el',
+    0x046F: 'kl',
+    0x0447: 'gu',
+    0x0468: 'ha',
+    0x040D: 'he',
+    0x0439: 'hi',
+    0x040E: 'hu',
+    0x040F: 'is',
+    0x0470: 'ig',
+    0x0421: 'id',
+    0x045D: 'iu',
+    0x085D: 'iu-Latn',
+    0x083C: 'ga',
+    0x0434: 'xh',
+    0x0435: 'zu',
+    0x0410: 'it',
+    0x0810: 'it-CH',
+    0x0411: 'ja',
+    0x044B: 'kn',
+    0x043F: 'kk',
+    0x0453: 'km',
+    0x0486: 'quc',
+    0x0487: 'rw',
+    0x0441: 'sw',
+    0x0457: 'kok',
+    0x0412: 'ko',
+    0x0440: 'ky',
+    0x0454: 'lo',
+    0x0426: 'lv',
+    0x0427: 'lt',
+    0x082E: 'dsb',
+    0x046E: 'lb',
+    0x042F: 'mk',
+    0x083E: 'ms-BN',
+    0x043E: 'ms',
+    0x044C: 'ml',
+    0x043A: 'mt',
+    0x0481: 'mi',
+    0x047A: 'arn',
+    0x044E: 'mr',
+    0x047C: 'moh',
+    0x0450: 'mn',
+    0x0850: 'mn-CN',
+    0x0461: 'ne',
+    0x0414: 'nb',
+    0x0814: 'nn',
+    0x0482: 'oc',
+    0x0448: 'or',
+    0x0463: 'ps',
+    0x0415: 'pl',
+    0x0416: 'pt',
+    0x0816: 'pt-PT',
+    0x0446: 'pa',
+    0x046B: 'qu-BO',
+    0x086B: 'qu-EC',
+    0x0C6B: 'qu',
+    0x0418: 'ro',
+    0x0417: 'rm',
+    0x0419: 'ru',
+    0x243B: 'smn',
+    0x103B: 'smj-NO',
+    0x143B: 'smj',
+    0x0C3B: 'se-FI',
+    0x043B: 'se',
+    0x083B: 'se-SE',
+    0x203B: 'sms',
+    0x183B: 'sma-NO',
+    0x1C3B: 'sms',
+    0x044F: 'sa',
+    0x1C1A: 'sr-Cyrl-BA',
+    0x0C1A: 'sr',
+    0x181A: 'sr-Latn-BA',
+    0x081A: 'sr-Latn',
+    0x046C: 'nso',
+    0x0432: 'tn',
+    0x045B: 'si',
+    0x041B: 'sk',
+    0x0424: 'sl',
+    0x2C0A: 'es-AR',
+    0x400A: 'es-BO',
+    0x340A: 'es-CL',
+    0x240A: 'es-CO',
+    0x140A: 'es-CR',
+    0x1C0A: 'es-DO',
+    0x300A: 'es-EC',
+    0x440A: 'es-SV',
+    0x100A: 'es-GT',
+    0x480A: 'es-HN',
+    0x080A: 'es-MX',
+    0x4C0A: 'es-NI',
+    0x180A: 'es-PA',
+    0x3C0A: 'es-PY',
+    0x280A: 'es-PE',
+    0x500A: 'es-PR',
+
+    // Microsoft has defined two different language codes for
+    // “Spanish with modern sorting” and “Spanish with traditional
+    // sorting”. This makes sense for collation APIs, and it would be
+    // possible to express this in BCP 47 language tags via Unicode
+    // extensions (eg., es-u-co-trad is Spanish with traditional
+    // sorting). However, for storing names in fonts, the distinction
+    // does not make sense, so we give “es” in both cases.
+    0x0C0A: 'es',
+    0x040A: 'es',
+
+    0x540A: 'es-US',
+    0x380A: 'es-UY',
+    0x200A: 'es-VE',
+    0x081D: 'sv-FI',
+    0x041D: 'sv',
+    0x045A: 'syr',
+    0x0428: 'tg',
+    0x085F: 'tzm',
+    0x0449: 'ta',
+    0x0444: 'tt',
+    0x044A: 'te',
+    0x041E: 'th',
+    0x0451: 'bo',
+    0x041F: 'tr',
+    0x0442: 'tk',
+    0x0480: 'ug',
+    0x0422: 'uk',
+    0x042E: 'hsb',
+    0x0420: 'ur',
+    0x0843: 'uz-Cyrl',
+    0x0443: 'uz',
+    0x042A: 'vi',
+    0x0452: 'cy',
+    0x0488: 'wo',
+    0x0485: 'sah',
+    0x0478: 'ii',
+    0x046A: 'yo'
+};
+
+// Returns a IETF BCP 47 language code, for example 'zh-Hant'
+// for 'Chinese in the traditional script'.
+function getLanguageCode(platformID, languageID, ltag) {
+    switch (platformID) {
+    case 0:  // Unicode
+        if (languageID === 0xFFFF) {
+            return 'und';
+        } else if (ltag) {
+            return ltag[languageID];
+        }
+
+        break;
+
+    case 1:  // Macintosh
+        return macLanguages[languageID];
+
+    case 3:  // Windows
+        return windowsLanguages[languageID];
+    }
+
+    return undefined;
+}
+
+var utf16 = 'utf-16';
+
+// MacOS script ID → encoding. This table stores the default case,
+// which can be overridden by macLanguageEncodings.
+var macScriptEncodings = {
+    0: 'macintosh',           // smRoman
+    1: 'x-mac-japanese',      // smJapanese
+    2: 'x-mac-chinesetrad',   // smTradChinese
+    3: 'x-mac-korean',        // smKorean
+    6: 'x-mac-greek',         // smGreek
+    7: 'x-mac-cyrillic',      // smCyrillic
+    9: 'x-mac-devanagai',     // smDevanagari
+    10: 'x-mac-gurmukhi',     // smGurmukhi
+    11: 'x-mac-gujarati',     // smGujarati
+    12: 'x-mac-oriya',        // smOriya
+    13: 'x-mac-bengali',      // smBengali
+    14: 'x-mac-tamil',        // smTamil
+    15: 'x-mac-telugu',       // smTelugu
+    16: 'x-mac-kannada',      // smKannada
+    17: 'x-mac-malayalam',    // smMalayalam
+    18: 'x-mac-sinhalese',    // smSinhalese
+    19: 'x-mac-burmese',      // smBurmese
+    20: 'x-mac-khmer',        // smKhmer
+    21: 'x-mac-thai',         // smThai
+    22: 'x-mac-lao',          // smLao
+    23: 'x-mac-georgian',     // smGeorgian
+    24: 'x-mac-armenian',     // smArmenian
+    25: 'x-mac-chinesesimp',  // smSimpChinese
+    26: 'x-mac-tibetan',      // smTibetan
+    27: 'x-mac-mongolian',    // smMongolian
+    28: 'x-mac-ethiopic',     // smEthiopic
+    29: 'x-mac-ce',           // smCentralEuroRoman
+    30: 'x-mac-vietnamese',   // smVietnamese
+    31: 'x-mac-extarabic'     // smExtArabic
+};
+
+// MacOS language ID → encoding. This table stores the exceptional
+// cases, which override macScriptEncodings. For writing MacOS naming
+// tables, we need to emit a MacOS script ID. Therefore, we cannot
+// merge macScriptEncodings into macLanguageEncodings.
+//
+// http://unicode.org/Public/MAPPINGS/VENDORS/APPLE/Readme.txt
+var macLanguageEncodings = {
+    15: 'x-mac-icelandic',    // langIcelandic
+    17: 'x-mac-turkish',      // langTurkish
+    18: 'x-mac-croatian',     // langCroatian
+    24: 'x-mac-ce',           // langLithuanian
+    25: 'x-mac-ce',           // langPolish
+    26: 'x-mac-ce',           // langHungarian
+    27: 'x-mac-ce',           // langEstonian
+    28: 'x-mac-ce',           // langLatvian
+    30: 'x-mac-icelandic',    // langFaroese
+    37: 'x-mac-romanian',     // langRomanian
+    38: 'x-mac-ce',           // langCzech
+    39: 'x-mac-ce',           // langSlovak
+    40: 'x-mac-ce',           // langSlovenian
+    143: 'x-mac-inuit',       // langInuktitut
+    146: 'x-mac-gaelic'       // langIrishGaelicScript
+};
+
+function getEncoding(platformID, encodingID, languageID) {
+    switch (platformID) {
+    case 0:  // Unicode
+        return utf16;
+
+    case 1:  // Apple Macintosh
+        return macLanguageEncodings[languageID] || macScriptEncodings[encodingID];
+
+    case 3:  // Microsoft Windows
+        if (encodingID === 1 || encodingID === 10) {
+            return utf16;
+        }
+
+        break;
+    }
+
+    return undefined;
+}
+
+// Parse the naming `name` table.
+// FIXME: Format 1 additional fields are not supported yet.
+// ltag is the content of the `ltag' table, such as ['en', 'zh-Hans', 'de-CH-1904'].
+function parseNameTable(data, start, ltag) {
     var name = {};
     var p = new parse.Parser(data, start);
-    name.format = p.parseUShort();
+    var format = p.parseUShort();
     var count = p.parseUShort();
     var stringOffset = p.offset + p.parseUShort();
-    var unknownCount = 0;
     for (var i = 0; i < count; i++) {
         var platformID = p.parseUShort();
         var encodingID = p.parseUShort();
         var languageID = p.parseUShort();
         var nameID = p.parseUShort();
-        var property = nameTableNames[nameID];
+        var property = nameTableNames[nameID] || nameID;
         var byteLength = p.parseUShort();
         var offset = p.parseUShort();
-        // platformID - encodingID - languageID standard combinations :
-        // 1 - 0 - 0 : Macintosh, Roman, English
-        // 3 - 1 - 0x409 : Windows, Unicode BMP (UCS-2), en-US
-        if (platformID === 3 && encodingID === 1 && languageID === 0x409) {
-            var codePoints = [];
-            var length = byteLength / 2;
-            for (var j = 0; j < length; j++, offset += 2) {
-                codePoints[j] = parse.getShort(data, stringOffset + offset);
+        var language = getLanguageCode(platformID, languageID, ltag);
+        var encoding = getEncoding(platformID, encodingID, languageID);
+        if (encoding !== undefined && language !== undefined) {
+            var text;
+            if (encoding === utf16) {
+                text = decode.UTF16(data, stringOffset + offset, byteLength);
+            } else {
+                text = decode.MACSTRING(data, stringOffset + offset, byteLength, encoding);
             }
 
-            var str = String.fromCharCode.apply(null, codePoints);
-            if (property) {
-                name[property] = str;
-            }
-            else {
-                unknownCount++;
-                name['unknown' + unknownCount] = str;
+            if (text) {
+                var translations = name[property];
+                if (translations === undefined) {
+                    translations = name[property] = {};
+                }
+
+                translations[language] = text;
             }
         }
-
     }
 
-    if (name.format === 1) {
-        name.langTagCount = p.parseUShort();
+    var langTagCount = 0;
+    if (format === 1) {
+        // FIXME: Also handle Microsoft's 'name' table 1.
+        langTagCount = p.parseUShort();
     }
 
     return name;
+}
+
+// {23: 'foo'} → {'foo': 23}
+// ['bar', 'baz'] → {'bar': 0, 'baz': 1}
+function reverseDict(dict) {
+    var result = {};
+    for (var key in dict) {
+        result[dict[key]] = parseInt(key);
+    }
+
+    return result;
 }
 
 function makeNameRecord(platformID, encodingID, languageID, nameID, length, offset) {
@@ -3795,67 +4653,140 @@ function makeNameRecord(platformID, encodingID, languageID, nameID, length, offs
     ]);
 }
 
-function addMacintoshNameRecord(t, recordID, s, offset) {
-    // Macintosh, Roman, English
-    var stringBytes = encode.STRING(s);
-    t.records.push(makeNameRecord(1, 0, 0, recordID, stringBytes.length, offset));
-    t.strings.push(stringBytes);
-    offset += stringBytes.length;
+// Finds the position of needle in haystack, or -1 if not there.
+// Like String.indexOf(), but for arrays.
+function findSubArray(needle, haystack) {
+    var needleLength = needle.length;
+    var limit = haystack.length - needleLength + 1;
+
+    loop:
+    for (var pos = 0; pos < limit; pos++) {
+        for (; pos < limit; pos++) {
+            for (var k = 0; k < needleLength; k++) {
+                if (haystack[pos + k] !== needle[k]) {
+                    continue loop;
+                }
+            }
+
+            return pos;
+        }
+    }
+
+    return -1;
+}
+
+function addStringToPool(s, pool) {
+    var offset = findSubArray(s, pool);
+    if (offset < 0) {
+        offset = pool.length;
+        for (var i = 0, len = s.length; i < len; ++i) {
+            pool.push(s[i]);
+        }
+
+    }
+
     return offset;
 }
 
-function addWindowsNameRecord(t, recordID, s, offset) {
-    // Windows, Unicode BMP (UCS-2), US English
-    var utf16Bytes = encode.UTF16(s);
-    t.records.push(makeNameRecord(3, 1, 0x0409, recordID, utf16Bytes.length, offset));
-    t.strings.push(utf16Bytes);
-    offset += utf16Bytes.length;
-    return offset;
-}
+function makeNameTable(names, ltag) {
+    var nameID;
+    var nameIDs = [];
 
-function makeNameTable(options) {
+    var namesWithNumericKeys = {};
+    var nameTableIds = reverseDict(nameTableNames);
+    for (var key in names) {
+        var id = nameTableIds[key];
+        if (id === undefined) {
+            id = key;
+        }
+
+        nameID = parseInt(id);
+        namesWithNumericKeys[nameID] = names[key];
+        nameIDs.push(nameID);
+    }
+
+    var macLanguageIds = reverseDict(macLanguages);
+    var windowsLanguageIds = reverseDict(windowsLanguages);
+
+    var nameRecords = [];
+    var stringPool = [];
+
+    for (var i = 0; i < nameIDs.length; i++) {
+        nameID = nameIDs[i];
+        var translations = namesWithNumericKeys[nameID];
+        for (var lang in translations) {
+            var text = translations[lang];
+
+            // For MacOS, we try to emit the name in the form that was introduced
+            // in the initial version of the TrueType spec (in the late 1980s).
+            // However, this can fail for various reasons: the requested BCP 47
+            // language code might not have an old-style Mac equivalent;
+            // we might not have a codec for the needed character encoding;
+            // or the name might contain characters that cannot be expressed
+            // in the old-style Macintosh encoding. In case of failure, we emit
+            // the name in a more modern fashion (Unicode encoding with BCP 47
+            // language tags) that is recognized by MacOS 10.5, released in 2009.
+            // If fonts were only read by operating systems, we could simply
+            // emit all names in the modern form; this would be much easier.
+            // However, there are many applications and libraries that read
+            // 'name' tables directly, and these will usually only recognize
+            // the ancient form (silently skipping the unrecognized names).
+            var macPlatform = 1;  // Macintosh
+            var macLanguage = macLanguageIds[lang];
+            var macScript = macLanguageToScript[macLanguage];
+            var macEncoding = getEncoding(macPlatform, macScript, macLanguage);
+            var macName = encode.MACSTRING(text, macEncoding);
+            if (macName === undefined) {
+                macPlatform = 0;  // Unicode
+                macLanguage = ltag.indexOf(lang);
+                if (macLanguage < 0) {
+                    macLanguage = ltag.length;
+                    ltag.push(lang);
+                }
+
+                macScript = 4;  // Unicode 2.0 and later
+                macName = encode.UTF16(text);
+            }
+
+            var macNameOffset = addStringToPool(macName, stringPool);
+            nameRecords.push(makeNameRecord(macPlatform, macScript, macLanguage,
+                                            nameID, macName.length, macNameOffset));
+
+            var winLanguage = windowsLanguageIds[lang];
+            if (winLanguage !== undefined) {
+                var winName = encode.UTF16(text);
+                var winNameOffset = addStringToPool(winName, stringPool);
+                nameRecords.push(makeNameRecord(3, 1, winLanguage,
+                                                nameID, winName.length, winNameOffset));
+            }
+        }
+    }
+
+    nameRecords.sort(function(a, b) {
+        return ((a.platformID - b.platformID) ||
+                (a.encodingID - b.encodingID) ||
+                (a.languageID - b.languageID) ||
+                (a.nameID - b.nameID));
+    });
+
     var t = new table.Table('name', [
         {name: 'format', type: 'USHORT', value: 0},
-        {name: 'count', type: 'USHORT', value: 0},
-        {name: 'stringOffset', type: 'USHORT', value: 0}
+        {name: 'count', type: 'USHORT', value: nameRecords.length},
+        {name: 'stringOffset', type: 'USHORT', value: 6 + nameRecords.length * 12}
     ]);
-    t.records = [];
-    t.strings = [];
-    var offset = 0;
-    var i;
-    var s;
-    // Add Macintosh records first
-    for (i = 0; i < nameTableNames.length; i += 1) {
-        if (options[nameTableNames[i]] !== undefined) {
-            s = options[nameTableNames[i]];
-            offset = addMacintoshNameRecord(t, i, s, offset);
-        }
-    }
-    // Then add Windows records
-    for (i = 0; i < nameTableNames.length; i += 1) {
-        if (options[nameTableNames[i]] !== undefined) {
-            s = options[nameTableNames[i]];
-            offset = addWindowsNameRecord(t, i, s, offset);
-        }
+
+    for (var r = 0; r < nameRecords.length; r++) {
+        t.fields.push({name: 'record_' + r, type: 'TABLE', value: nameRecords[r]});
     }
 
-    t.count = t.records.length;
-    t.stringOffset = 6 + t.count * 12;
-    for (i = 0; i < t.records.length; i += 1) {
-        t.fields.push({name: 'record_' + i, type: 'TABLE', value: t.records[i]});
-    }
-
-    for (i = 0; i < t.strings.length; i += 1) {
-        t.fields.push({name: 'string_' + i, type: 'LITERAL', value: t.strings[i]});
-    }
-
+    t.fields.push({name: 'strings', type: 'LITERAL', value: stringPool});
     return t;
 }
 
 exports.parse = parseNameTable;
 exports.make = makeNameTable;
 
-},{"../parse":9,"../table":11,"../types":26}],23:[function(_dereq_,module,exports){
+},{"../parse":9,"../table":11,"../types":28}],25:[function(_dereq_,module,exports){
 // The `OS/2` table contains metrics required in OpenType fonts.
 // https://www.microsoft.com/typography/OTSPEC/os2.htm
 
@@ -4111,7 +5042,7 @@ exports.getUnicodeRange = getUnicodeRange;
 exports.parse = parseOS2Table;
 exports.make = makeOS2Table;
 
-},{"../parse":9,"../table":11}],24:[function(_dereq_,module,exports){
+},{"../parse":9,"../table":11}],26:[function(_dereq_,module,exports){
 // The `post` table stores additional PostScript information, such as glyph names.
 // https://www.microsoft.com/typography/OTSPEC/post.htm
 
@@ -4184,7 +5115,7 @@ function makePostTable() {
 exports.parse = parsePostTable;
 exports.make = makePostTable;
 
-},{"../encoding":4,"../parse":9,"../table":11}],25:[function(_dereq_,module,exports){
+},{"../encoding":4,"../parse":9,"../table":11}],27:[function(_dereq_,module,exports){
 // The `sfnt` wrapper provides organization for the tables in the font.
 // It is the top-level data structure in a font.
 // https://www.microsoft.com/typography/OTSPEC/otff.htm
@@ -4201,6 +5132,7 @@ var cff = _dereq_('./cff');
 var head = _dereq_('./head');
 var hhea = _dereq_('./hhea');
 var hmtx = _dereq_('./hmtx');
+var ltag = _dereq_('./ltag');
 var maxp = _dereq_('./maxp');
 var _name = _dereq_('./name');
 var os2 = _dereq_('./os2');
@@ -4426,38 +5358,54 @@ function fontToSfntTable(font) {
     var hmtxTable = hmtx.make(font.glyphs);
     var cmapTable = cmap.make(font.glyphs);
 
-    var fullName = font.familyName + ' ' + font.styleName;
-    var postScriptName = font.familyName.replace(/\s/g, '') + '-' + font.styleName;
-    var nameTable = _name.make({
-        copyright: font.copyright,
-        fontFamily: font.familyName,
-        fontSubfamily: font.styleName,
-        uniqueID: font.manufacturer + ':' + fullName,
-        fullName: fullName,
-        version: font.version,
-        postScriptName: postScriptName,
-        trademark: font.trademark,
-        manufacturer: font.manufacturer,
-        designer: font.designer,
-        description: font.description,
-        manufacturerURL: font.manufacturerURL,
-        designerURL: font.designerURL,
-        license: font.license,
-        licenseURL: font.licenseURL,
-        preferredFamily: font.familyName,
-        preferredSubfamily: font.styleName
-    });
+    var englishFamilyName = font.getEnglishName('fontFamily');
+    var englishStyleName = font.getEnglishName('fontSubfamily');
+    var englishFullName = englishFamilyName + ' ' + englishStyleName;
+    var postScriptName = font.getEnglishName('postScriptName');
+    if (!postScriptName) {
+        postScriptName = englishFamilyName.replace(/\s/g, '') + '-' + englishStyleName;
+    }
+
+    var names = {};
+    for (var n in font.names) {
+        names[n] = font.names[n];
+    }
+
+    if (!names.uniqueID) {
+        names.uniqueID = {en: font.getEnglishName('manufacturer') + ':' + englishFullName};
+    }
+
+    if (!names.postScriptName) {
+        names.postScriptName = {en: postScriptName};
+    }
+
+    if (!names.preferredFamily) {
+        names.preferredFamily = font.names.fontFamily;
+    }
+
+    if (!names.preferredSubfamily) {
+        names.preferredSubfamily = font.names.fontSubfamily;
+    }
+
+    var languageTags = [];
+    var nameTable = _name.make(names, languageTags);
+    var ltagTable = (languageTags.length > 0 ? ltag.make(languageTags) : undefined);
+
     var postTable = post.make();
     var cffTable = cff.make(font.glyphs, {
-        version: font.version,
-        fullName: fullName,
-        familyName: font.familyName,
-        weightName: font.styleName,
+        version: font.getEnglishName('version'),
+        fullName: englishFullName,
+        familyName: englishFamilyName,
+        weightName: englishStyleName,
         postScriptName: postScriptName,
         unitsPerEm: font.unitsPerEm
     });
-    // Order the tables according to the the OpenType specification 1.4.
+
+    // The order does not matter because makeSfntTable() will sort them.
     var tables = [headTable, hheaTable, maxpTable, os2Table, nameTable, cmapTable, postTable, cffTable, hmtxTable];
+    if (ltagTable) {
+        tables.push(ltagTable);
+    }
 
     var sfntTable = makeSfntTable(tables);
 
@@ -4485,7 +5433,7 @@ exports.computeCheckSum = computeCheckSum;
 exports.make = makeSfntTable;
 exports.fontToTable = fontToSfntTable;
 
-},{"../check":2,"../table":11,"./cff":12,"./cmap":13,"./head":16,"./hhea":17,"./hmtx":18,"./maxp":21,"./name":22,"./os2":23,"./post":24}],26:[function(_dereq_,module,exports){
+},{"../check":2,"../table":11,"./cff":12,"./cmap":13,"./head":17,"./hhea":18,"./hmtx":19,"./ltag":22,"./maxp":23,"./name":24,"./os2":25,"./post":26}],28:[function(_dereq_,module,exports){
 // Data types used in the OpenType font file.
 // All OpenType fonts use Motorola-style byte ordering (Big Endian)
 
@@ -4524,7 +5472,7 @@ encode.CHAR = function(v) {
     return [v.charCodeAt(0)];
 };
 
-sizeOf.BYTE = constant(1);
+sizeOf.CHAR = constant(1);
 
 // Convert an ASCII string to a list of bytes.
 encode.CHARARRAY = function(v) {
@@ -4653,16 +5601,16 @@ encode.NUMBER16 = function(v) {
     return [28, (v >> 8) & 0xFF, v & 0xFF];
 };
 
-sizeOf.NUMBER16 = constant(2);
+sizeOf.NUMBER16 = constant(3);
 
-// Convert a signed number between -(2^31) and +(2^31-1) to a four-byte value.
+// Convert a signed number between -(2^31) and +(2^31-1) to a five-byte value.
 // This is useful if you want to be sure you always use four bytes,
 // at the expense of wasting a few bytes for smaller numbers.
 encode.NUMBER32 = function(v) {
     return [29, (v >> 24) & 0xFF, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF];
 };
 
-sizeOf.NUMBER32 = constant(4);
+sizeOf.NUMBER32 = constant(5);
 
 encode.REAL = function(v) {
     var value = v.toString();
@@ -4710,12 +5658,23 @@ sizeOf.NAME = sizeOf.CHARARRAY;
 encode.STRING = encode.CHARARRAY;
 sizeOf.STRING = sizeOf.CHARARRAY;
 
-// Convert a ASCII string to a list of UTF16 bytes.
+decode.UTF16 = function(data, offset, numBytes) {
+    var codePoints = [];
+    var numChars = numBytes / 2;
+    for (var j = 0; j < numChars; j++, offset += 2) {
+        codePoints[j] = data.getUint16(offset);
+    }
+
+    return String.fromCharCode.apply(null, codePoints);
+};
+
+// Convert a JavaScript string to UTF16-BE.
 encode.UTF16 = function(v) {
     var b = [];
     for (var i = 0; i < v.length; i += 1) {
-        b.push(0);
-        b.push(v.charCodeAt(i));
+        var codepoint = v.charCodeAt(i);
+        b.push((codepoint >> 8) & 0xFF);
+        b.push(codepoint & 0xFF);
     }
 
     return b;
@@ -4723,6 +5682,167 @@ encode.UTF16 = function(v) {
 
 sizeOf.UTF16 = function(v) {
     return v.length * 2;
+};
+
+// Data for converting old eight-bit Macintosh encodings to Unicode.
+// This representation is optimized for decoding; encoding is slower
+// and needs more memory. The assumption is that all opentype.js users
+// want to open fonts, but saving a font will be comperatively rare
+// so it can be more expensive. Keyed by IANA character set name.
+//
+// Python script for generating these strings:
+//
+//     s = u''.join([chr(c).decode('mac_greek') for c in range(128, 256)])
+//     print(s.encode('utf-8'))
+var eightBitMacEncodings = {
+    'x-mac-croatian':  // Python: 'mac_croatian'
+        'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®Š™´¨≠ŽØ∞±≤≥∆µ∂∑∏š∫ªºΩžø' +
+        '¿¡¬√ƒ≈Ć«Č… ÀÃÕŒœĐ—“”‘’÷◊©⁄€‹›Æ»–·‚„‰ÂćÁčÈÍÎÏÌÓÔđÒÚÛÙıˆ˜¯πË˚¸Êæˇ',
+    'x-mac-cyrillic':  // Python: 'mac_cyrillic'
+        'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ†°Ґ£§•¶І®©™Ђђ≠Ѓѓ∞±≤≥іµґЈЄєЇїЉљЊњ' +
+        'јЅ¬√ƒ≈∆«»… ЋћЌќѕ–—“”‘’÷„ЎўЏџ№Ёёяабвгдежзийклмнопрстуфхцчшщъыьэю',
+    'x-mac-gaelic':
+        // http://unicode.org/Public/MAPPINGS/VENDORS/APPLE/GAELIC.TXT
+        'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ÆØḂ±≤≥ḃĊċḊḋḞḟĠġṀæø' +
+        'ṁṖṗɼƒſṠ«»… ÀÃÕŒœ–—“”‘’ṡẛÿŸṪ€‹›Ŷŷṫ·Ỳỳ⁊ÂÊÁËÈÍÎÏÌÓÔ♣ÒÚÛÙıÝýŴŵẄẅẀẁẂẃ',
+    'x-mac-greek':  // Python: 'mac_greek'
+        'Ä¹²É³ÖÜ΅àâä΄¨çéèêë£™îï•½‰ôö¦€ùûü†ΓΔΘΛΞΠß®©ΣΪ§≠°·Α±≤≥¥ΒΕΖΗΙΚΜΦΫΨΩ' +
+        'άΝ¬ΟΡ≈Τ«»… ΥΧΆΈœ–―“”‘’÷ΉΊΌΎέήίόΏύαβψδεφγηιξκλμνοπώρστθωςχυζϊϋΐΰ\u00AD',
+    'x-mac-icelandic':  // Python: 'mac_iceland'
+        'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûüÝ°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø' +
+        '¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€ÐðÞþý·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ',
+    'x-mac-inuit':
+        // http://unicode.org/Public/MAPPINGS/VENDORS/APPLE/INUIT.TXT
+        'ᐃᐄᐅᐆᐊᐋᐱᐲᐳᐴᐸᐹᑉᑎᑏᑐᑑᑕᑖᑦᑭᑮᑯᑰᑲᑳᒃᒋᒌᒍᒎᒐᒑ°ᒡᒥᒦ•¶ᒧ®©™ᒨᒪᒫᒻᓂᓃᓄᓅᓇᓈᓐᓯᓰᓱᓲᓴᓵᔅᓕᓖᓗ' +
+        'ᓘᓚᓛᓪᔨᔩᔪᔫᔭ… ᔮᔾᕕᕖᕗ–—“”‘’ᕘᕙᕚᕝᕆᕇᕈᕉᕋᕌᕐᕿᖀᖁᖂᖃᖄᖅᖏᖐᖑᖒᖓᖔᖕᙱᙲᙳᙴᙵᙶᖖᖠᖡᖢᖣᖤᖥᖦᕼŁł',
+    'x-mac-ce':  // Python: 'mac_latin2'
+        'ÄĀāÉĄÖÜáąČäčĆćéŹźĎíďĒēĖóėôöõúĚěü†°Ę£§•¶ß®©™ę¨≠ģĮįĪ≤≥īĶ∂∑łĻļĽľĹĺŅ' +
+        'ņŃ¬√ńŇ∆«»… ňŐÕőŌ–—“”‘’÷◊ōŔŕŘ‹›řŖŗŠ‚„šŚśÁŤťÍŽžŪÓÔūŮÚůŰűŲųÝýķŻŁżĢˇ',
+    macintosh:  // Python: 'mac_roman'
+        'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø' +
+        '¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€‹›ﬁﬂ‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ',
+    'x-mac-romanian':  // Python: 'mac_romanian'
+        'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ĂȘ∞±≤≥¥µ∂∑∏π∫ªºΩăș' +
+        '¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸ⁄€‹›Țț‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ˜¯˘˙˚¸˝˛ˇ',
+    'x-mac-turkish':  // Python: 'mac_turkish'
+        'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø' +
+        '¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷◊ÿŸĞğİıŞş‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙˆ˜¯˘˙˚¸˝˛ˇ'
+};
+
+// Decodes an old-style Macintosh string. Returns either a Unicode JavaScript
+// string, or 'undefined' if the encoding is unsupported. For example, we do
+// not support Chinese, Japanese or Korean because these would need large
+// mapping tables.
+decode.MACSTRING = function(dataView, offset, dataLength, encoding) {
+    var table = eightBitMacEncodings[encoding];
+    if (table === undefined) {
+        return undefined;
+    }
+
+    var result = '';
+    for (var i = 0; i < dataLength; i++) {
+        var c = dataView.getUint8(offset + i);
+        // In all eight-bit Mac encodings, the characters 0x00..0x7F are
+        // mapped to U+0000..U+007F; we only need to look up the others.
+        if (c <= 0x7F) {
+            result += String.fromCharCode(c);
+        } else {
+            result += table[c & 0x7F];
+        }
+    }
+
+    return result;
+};
+
+// Helper function for encode.MACSTRING. Returns a dictionary for mapping
+// Unicode character codes to their 8-bit MacOS equivalent. This table
+// is not exactly a super cheap data structure, but we do not care because
+// encoding Macintosh strings is only rarely needed in typical applications.
+var macEncodingTableCache = typeof WeakMap === 'function' && new WeakMap();
+var macEncodingCacheKeys;
+var getMacEncodingTable = function(encoding) {
+    // Since we use encoding as a cache key for WeakMap, it has to be
+    // a String object and not a literal. And at least on NodeJS 2.10.1,
+    // WeakMap requires that the same String instance is passed for cache hits.
+    if (!macEncodingCacheKeys) {
+        macEncodingCacheKeys = {};
+        for (var e in eightBitMacEncodings) {
+            /*jshint -W053 */  // Suppress "Do not use String as a constructor."
+            macEncodingCacheKeys[e] = new String(e);
+        }
+    }
+
+    var cacheKey = macEncodingCacheKeys[encoding];
+    if (cacheKey === undefined) {
+        return undefined;
+    }
+
+    // We can't do "if (cache.has(key)) {return cache.get(key)}" here:
+    // since garbage collection may run at any time, it could also kick in
+    // between the calls to cache.has() and cache.get(). In that case,
+    // we would return 'undefined' even though we do support the encoding.
+    if (macEncodingTableCache) {
+        var cachedTable = macEncodingTableCache.get(cacheKey);
+        if (cachedTable !== undefined) {
+            return cachedTable;
+        }
+    }
+
+    var decodingTable = eightBitMacEncodings[encoding];
+    if (decodingTable === undefined) {
+        return undefined;
+    }
+
+    var encodingTable = {};
+    for (var i = 0; i < decodingTable.length; i++) {
+        encodingTable[decodingTable.charCodeAt(i)] = i + 0x80;
+    }
+
+    if (macEncodingTableCache) {
+        macEncodingTableCache.set(cacheKey, encodingTable);
+    }
+
+    return encodingTable;
+};
+
+// Encodes an old-style Macintosh string. Returns a byte array upon success.
+// If the requested encoding is unsupported, or if the input string contains
+// a character that cannot be expressed in the encoding, the function returns
+// 'undefined'.
+encode.MACSTRING = function(str, encoding) {
+    var table = getMacEncodingTable(encoding);
+    if (table === undefined) {
+        return undefined;
+    }
+
+    var result = [];
+    for (var i = 0; i < str.length; i++) {
+        var c = str.charCodeAt(i);
+
+        // In all eight-bit Mac encodings, the characters 0x00..0x7F are
+        // mapped to U+0000..U+007F; we only need to look up the others.
+        if (c >= 0x80) {
+            c = table[c];
+            if (c === undefined) {
+                // str contains a Unicode character that cannot be encoded
+                // in the requested encoding.
+                return undefined;
+            }
+        }
+
+        result.push(c);
+    }
+
+    return result;
+};
+
+sizeOf.MACSTRING = function(str, encoding) {
+    var b = encode.MACSTRING(str, encoding);
+    if (b !== undefined) {
+        return b.length;
+    } else {
+        return 0;
+    }
 };
 
 // Convert a list of values to a CFF INDEX structure.
@@ -4834,8 +5954,12 @@ sizeOf.OP = sizeOf.BYTE;
 var wmm = typeof WeakMap === 'function' && new WeakMap();
 // Convert a list of CharString operations to bytes.
 encode.CHARSTRING = function(ops) {
-    if (wmm && wmm.has(ops)) {
-        return wmm.get(ops);
+    // See encode.MACSTRING for why we don't do "if (wmm && wmm.has(ops))".
+    if (wmm) {
+        var cachedValue = wmm.get(ops);
+        if (cachedValue !== undefined) {
+            return cachedValue;
+        }
     }
 
     var d = [];
@@ -4866,6 +5990,12 @@ encode.OBJECT = function(v) {
     return encodingFunction(v.value);
 };
 
+sizeOf.OBJECT = function(v) {
+    var sizeOfFunction = sizeOf[v.type];
+    check.argument(sizeOfFunction !== undefined, 'No sizeOf function for type ' + v.type);
+    return sizeOfFunction(v.value);
+};
+
 // Convert a table object to bytes.
 // A table contains a list of fields containing the metadata (name, type and default value).
 // The table itself has the field values set as attributes.
@@ -4889,6 +6019,25 @@ encode.TABLE = function(table) {
     return d;
 };
 
+sizeOf.TABLE = function(table) {
+    var numBytes = 0;
+    var length = table.fields.length;
+
+    for (var i = 0; i < length; i += 1) {
+        var field = table.fields[i];
+        var sizeOfFunction = sizeOf[field.type];
+        check.argument(sizeOfFunction !== undefined, 'No sizeOf function for field type ' + field.type);
+        var value = table[field.name];
+        if (value === undefined) {
+            value = field.value;
+        }
+
+        numBytes += sizeOfFunction(value);
+    }
+
+    return numBytes;
+};
+
 // Merge in a list of bytes.
 encode.LITERAL = function(v) {
     return v;
@@ -4902,7 +6051,7 @@ exports.decode = decode;
 exports.encode = encode;
 exports.sizeOf = sizeOf;
 
-},{"./check":2}],27:[function(_dereq_,module,exports){
+},{"./check":2}],29:[function(_dereq_,module,exports){
 /*!
   * Reqwest! A general purpose XHR connection manager
   * license MIT (c) Dustin Diaz 2014
@@ -5519,7 +6668,7 @@ exports.sizeOf = sizeOf;
   return reqwest
 });
 
-},{}],28:[function(_dereq_,module,exports){
+},{}],30:[function(_dereq_,module,exports){
 
 'use strict';
 
@@ -5613,7 +6762,7 @@ if (document.readyState === 'complete') {
 
 module.exports = p5;
 
-},{"./color/creating_reading":30,"./color/p5.Color":31,"./color/setting":32,"./core/2d_primitives":33,"./core/attributes":34,"./core/constants":36,"./core/core":37,"./core/curves":38,"./core/environment":39,"./core/p5.Element":41,"./core/p5.Graphics":42,"./core/p5.Renderer2D":44,"./core/rendering":45,"./core/structure":47,"./core/transform":48,"./core/vertex":49,"./events/acceleration":50,"./events/keyboard":51,"./events/mouse":52,"./events/touch":53,"./image/image":55,"./image/loading_displaying":56,"./image/p5.Image":57,"./image/pixels":58,"./io/files":59,"./io/p5.Table":60,"./io/p5.TableRow":61,"./io/p5.XML":62,"./math/calculation":63,"./math/math":64,"./math/noise":65,"./math/p5.Vector":66,"./math/random":68,"./math/trigonometry":69,"./typography/attributes":70,"./typography/loading_displaying":71,"./typography/p5.Font":72,"./utilities/array_functions":73,"./utilities/conversion":74,"./utilities/string_functions":75,"./utilities/time_date":76,"./webgl/camera":77,"./webgl/interaction":78,"./webgl/light":79,"./webgl/loading":80,"./webgl/material":81,"./webgl/p5.Geometry":82,"./webgl/p5.Matrix":83,"./webgl/p5.RendererGL":86,"./webgl/p5.RendererGL.Immediate":84,"./webgl/p5.RendererGL.Retained":85,"./webgl/primitives":87,"./webgl/shader":88}],29:[function(_dereq_,module,exports){
+},{"./color/creating_reading":32,"./color/p5.Color":33,"./color/setting":34,"./core/2d_primitives":35,"./core/attributes":36,"./core/constants":38,"./core/core":39,"./core/curves":40,"./core/environment":41,"./core/p5.Element":43,"./core/p5.Graphics":44,"./core/p5.Renderer2D":46,"./core/rendering":47,"./core/structure":49,"./core/transform":50,"./core/vertex":51,"./events/acceleration":52,"./events/keyboard":53,"./events/mouse":54,"./events/touch":55,"./image/image":57,"./image/loading_displaying":58,"./image/p5.Image":59,"./image/pixels":60,"./io/files":61,"./io/p5.Table":62,"./io/p5.TableRow":63,"./io/p5.XML":64,"./math/calculation":65,"./math/math":66,"./math/noise":67,"./math/p5.Vector":68,"./math/random":70,"./math/trigonometry":71,"./typography/attributes":72,"./typography/loading_displaying":73,"./typography/p5.Font":74,"./utilities/array_functions":75,"./utilities/conversion":76,"./utilities/string_functions":77,"./utilities/time_date":78,"./webgl/camera":79,"./webgl/interaction":80,"./webgl/light":81,"./webgl/loading":82,"./webgl/material":83,"./webgl/p5.Geometry":84,"./webgl/p5.Matrix":85,"./webgl/p5.RendererGL":88,"./webgl/p5.RendererGL.Immediate":86,"./webgl/p5.RendererGL.Retained":87,"./webgl/primitives":89,"./webgl/shader":90}],31:[function(_dereq_,module,exports){
 /**
  * module Conversion
  * submodule Color Conversion
@@ -5866,7 +7015,7 @@ p5.ColorConversion._rgbaToHSLA = function(rgba) {
 
 module.exports = p5.ColorConversion;
 
-},{"../core/core":37}],30:[function(_dereq_,module,exports){
+},{"../core/core":39}],32:[function(_dereq_,module,exports){
 /**
  * @module Color
  * @submodule Creating & Reading
@@ -6445,7 +7594,7 @@ p5.prototype.saturation = function(c) {
 
 module.exports = p5;
 
-},{"../core/constants":36,"../core/core":37,"./p5.Color":31}],31:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39,"./p5.Color":33}],33:[function(_dereq_,module,exports){
 /**
  * @module Color
  * @submodule Creating & Reading
@@ -7051,7 +8200,7 @@ p5.Color._parseInputs = function() {
 
 module.exports = p5.Color;
 
-},{"../core/constants":36,"../core/core":37,"./color_conversion":29}],32:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39,"./color_conversion":31}],34:[function(_dereq_,module,exports){
 /**
  * @module Color
  * @submodule Setting
@@ -7685,7 +8834,7 @@ p5.prototype.stroke = function() {
 
 module.exports = p5;
 
-},{"../core/constants":36,"../core/core":37,"./p5.Color":31}],33:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39,"./p5.Color":33}],35:[function(_dereq_,module,exports){
 /**
  * @module Shape
  * @submodule 2D Primitives
@@ -8196,7 +9345,7 @@ p5.prototype.triangle = function() {
 
 module.exports = p5;
 
-},{"./canvas":35,"./constants":36,"./core":37,"./error_helpers":40}],34:[function(_dereq_,module,exports){
+},{"./canvas":37,"./constants":38,"./core":39,"./error_helpers":42}],36:[function(_dereq_,module,exports){
 /**
  * @module Shape
  * @submodule Attributes
@@ -8527,7 +9676,7 @@ p5.prototype.strokeWeight = function(w) {
 
 module.exports = p5;
 
-},{"./constants":36,"./core":37}],35:[function(_dereq_,module,exports){
+},{"./constants":38,"./core":39}],37:[function(_dereq_,module,exports){
 /**
  * @requires constants
  */
@@ -8563,7 +9712,7 @@ module.exports = {
 };
 
 
-},{"./constants":36}],36:[function(_dereq_,module,exports){
+},{"./constants":38}],38:[function(_dereq_,module,exports){
 /**
  * @module Constants
  * @submodule Constants
@@ -8784,7 +9933,7 @@ module.exports = {
 
 };
 
-},{}],37:[function(_dereq_,module,exports){
+},{}],39:[function(_dereq_,module,exports){
 /**
  * @module Structure
  * @submodule Structure
@@ -9452,7 +10601,7 @@ p5.prototype._createFriendlyGlobalFunctionBinder = function(options) {
 
 module.exports = p5;
 
-},{"./constants":36,"./shim":46}],38:[function(_dereq_,module,exports){
+},{"./constants":38,"./shim":48}],40:[function(_dereq_,module,exports){
 /**
  * @module Shape
  * @submodule Curves
@@ -9989,7 +11138,7 @@ p5.prototype.curveTangent = function(a, b,c, d, t) {
 
 module.exports = p5;
 
-},{"./core":37,"./error_helpers":40}],39:[function(_dereq_,module,exports){
+},{"./core":39,"./error_helpers":42}],41:[function(_dereq_,module,exports){
 /**
  * @module Environment
  * @submodule Environment
@@ -10661,7 +11810,7 @@ p5.prototype.getURLParams = function() {
 
 module.exports = p5;
 
-},{"./constants":36,"./core":37}],40:[function(_dereq_,module,exports){
+},{"./constants":38,"./core":39}],42:[function(_dereq_,module,exports){
 /**
  * @for p5
  * @requires core
@@ -11053,7 +12202,7 @@ if (document.readyState !== 'complete') {
 
 module.exports = p5;
 
-},{"./constants":36,"./core":37}],41:[function(_dereq_,module,exports){
+},{"./constants":38,"./core":39}],43:[function(_dereq_,module,exports){
 /**
  * @module DOM
  * @submodule DOM
@@ -11936,7 +13085,7 @@ p5.Element.prototype._setProperty = function (prop, value) {
 
 module.exports = p5.Element;
 
-},{"./core":37}],42:[function(_dereq_,module,exports){
+},{"./core":39}],44:[function(_dereq_,module,exports){
 /**
  * @module Rendering
  * @submodule Rendering
@@ -12003,7 +13152,7 @@ p5.Graphics.prototype = Object.create(p5.Element.prototype);
 
 module.exports = p5.Graphics;
 
-},{"./constants":36,"./core":37}],43:[function(_dereq_,module,exports){
+},{"./constants":38,"./core":39}],45:[function(_dereq_,module,exports){
 /**
  * @module Rendering
  * @submodule Rendering
@@ -12225,12 +13374,11 @@ function calculateOffset(object) {
 
 module.exports = p5.Renderer;
 
-},{"../core/constants":36,"./core":37}],44:[function(_dereq_,module,exports){
+},{"../core/constants":38,"./core":39}],46:[function(_dereq_,module,exports){
 
 var p5 = _dereq_('./core');
 var canvas = _dereq_('./canvas');
 var constants = _dereq_('./constants');
-var filters = _dereq_('../image/filters');
 
 _dereq_('./p5.Renderer');
 
@@ -12345,9 +13493,11 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   tmpCtx.fillStyle = 'hsl(' + this._pInst.hue(this._tint) + ', 100%, 50%)';
   tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
   tmpCtx.globalCompositeOperation = 'destination-atop';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width, this._tintCanvas.height);
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+    this._tintCanvas.height);
   tmpCtx.globalCompositeOperation = 'multiply';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width, this._tintCanvas.height);
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+    this._tintCanvas.height);
   return this._tintCanvas;
 };
 
@@ -13509,7 +14659,7 @@ p5.Renderer2D.prototype.pop = function() {
 
 module.exports = p5.Renderer2D;
 
-},{"../image/filters":54,"./canvas":35,"./constants":36,"./core":37,"./p5.Renderer":43}],45:[function(_dereq_,module,exports){
+},{"./canvas":37,"./constants":38,"./core":39,"./p5.Renderer":45}],47:[function(_dereq_,module,exports){
 /**
  * @module Rendering
  * @submodule Rendering
@@ -13815,7 +14965,7 @@ p5.prototype.blendMode = function(mode) {
 
 module.exports = p5;
 
-},{"../webgl/p5.RendererGL":86,"./constants":36,"./core":37,"./p5.Graphics":42,"./p5.Renderer2D":44}],46:[function(_dereq_,module,exports){
+},{"../webgl/p5.RendererGL":88,"./constants":38,"./core":39,"./p5.Graphics":44,"./p5.Renderer2D":46}],48:[function(_dereq_,module,exports){
 
 // requestAnim shim layer by Paul Irish
 window.requestAnimationFrame = (function(){
@@ -13898,7 +15048,7 @@ window.performance.now = (function(){
   }
 }());
 
-},{}],47:[function(_dereq_,module,exports){
+},{}],49:[function(_dereq_,module,exports){
 /**
  * @module Structure
  * @submodule Structure
@@ -14270,7 +15420,7 @@ p5.prototype.size = function() {
 
 module.exports = p5;
 
-},{"./core":37}],48:[function(_dereq_,module,exports){
+},{"./core":39}],50:[function(_dereq_,module,exports){
 /**
  * @module Transform
  * @submodule Transform
@@ -14720,7 +15870,7 @@ p5.prototype.translate = function(x, y, z) {
 
 module.exports = p5;
 
-},{"./constants":36,"./core":37}],49:[function(_dereq_,module,exports){
+},{"./constants":38,"./core":39}],51:[function(_dereq_,module,exports){
 /**
  * @module Shape
  * @submodule Vertex
@@ -15375,7 +16525,7 @@ p5.prototype.vertex = function(x, y, moveTo) {
 };
 
 module.exports = p5;
-},{"./constants":36,"./core":37}],50:[function(_dereq_,module,exports){
+},{"./constants":38,"./core":39}],52:[function(_dereq_,module,exports){
 /**
  * @module Events
  * @submodule Acceleration
@@ -15968,7 +17118,7 @@ p5.prototype._handleMotion = function() {
 
 module.exports = p5;
 
-},{"../core/core":37}],51:[function(_dereq_,module,exports){
+},{"../core/core":39}],53:[function(_dereq_,module,exports){
 /**
  * @module Events
  * @submodule Keyboard
@@ -16325,7 +17475,7 @@ p5.prototype.keyIsDown = function(code) {
 
 module.exports = p5;
 
-},{"../core/core":37}],52:[function(_dereq_,module,exports){
+},{"../core/core":39}],54:[function(_dereq_,module,exports){
 /**
  * @module Events
  * @submodule Mouse
@@ -17094,7 +18244,7 @@ p5.prototype._onwheel = function(e) {
 
 module.exports = p5;
 
-},{"../core/constants":36,"../core/core":37}],53:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39}],55:[function(_dereq_,module,exports){
 /**
  * @module Events
  * @submodule Touch
@@ -17498,7 +18648,7 @@ p5.prototype._ontouchend = function(e) {
 
 module.exports = p5;
 
-},{"../core/core":37}],54:[function(_dereq_,module,exports){
+},{"../core/core":39}],56:[function(_dereq_,module,exports){
 /*global ImageData:false */
 
 /**
@@ -18101,7 +19251,7 @@ Filters.blur = function(canvas, radius){
 
 module.exports = Filters;
 
-},{}],55:[function(_dereq_,module,exports){
+},{}],57:[function(_dereq_,module,exports){
 /**
  * @module Image
  * @submodule Image
@@ -18438,7 +19588,7 @@ p5.prototype._makeFrame = function(filename, extension, _cnv) {
 
 module.exports = p5;
 
-},{"../core/core":37}],56:[function(_dereq_,module,exports){
+},{"../core/core":39}],58:[function(_dereq_,module,exports){
 /**
  * @module Image
  * @submodule Loading & Displaying
@@ -18895,7 +20045,7 @@ p5.prototype.imageMode = function(m) {
 
 module.exports = p5;
 
-},{"../core/canvas":35,"../core/constants":36,"../core/core":37,"../core/error_helpers":40,"./filters":54}],57:[function(_dereq_,module,exports){
+},{"../core/canvas":37,"../core/constants":38,"../core/core":39,"../core/error_helpers":42,"./filters":56}],59:[function(_dereq_,module,exports){
 /**
  * @module Image
  * @submodule Image
@@ -19601,7 +20751,7 @@ p5.Image.prototype.save = function(filename, extension) {
 };
 
 module.exports = p5.Image;
-},{"../core/core":37,"./filters":54}],58:[function(_dereq_,module,exports){
+},{"../core/core":39,"./filters":56}],60:[function(_dereq_,module,exports){
 /**
  * @module Image
  * @submodule Pixels
@@ -20213,7 +21363,7 @@ p5.prototype.updatePixels = function (x, y, w, h) {
 
 module.exports = p5;
 
-},{"../color/p5.Color":31,"../core/core":37,"./filters":54}],59:[function(_dereq_,module,exports){
+},{"../color/p5.Color":33,"../core/core":39,"./filters":56}],61:[function(_dereq_,module,exports){
 /**
  * @module IO
  * @submodule Input
@@ -21710,7 +22860,7 @@ function destroyClickedElement(event) {
 
 module.exports = p5;
 
-},{"../core/core":37,"../core/error_helpers":40,"opentype.js":8,"reqwest":27}],60:[function(_dereq_,module,exports){
+},{"../core/core":39,"../core/error_helpers":42,"opentype.js":8,"reqwest":29}],62:[function(_dereq_,module,exports){
 /**
  * @module IO
  * @submodule Table
@@ -22869,7 +24019,7 @@ p5.Table.prototype.getArray = function () {
 
 module.exports = p5.Table;
 
-},{"../core/core":37}],61:[function(_dereq_,module,exports){
+},{"../core/core":39}],63:[function(_dereq_,module,exports){
 /**
  * @module IO
  * @submodule Table
@@ -23039,7 +24189,7 @@ p5.TableRow.prototype.getString = function(column) {
 
 module.exports = p5.TableRow;
 
-},{"../core/core":37}],62:[function(_dereq_,module,exports){
+},{"../core/core":39}],64:[function(_dereq_,module,exports){
 /**
  * @module IO
  * @submodule XML
@@ -23838,7 +24988,7 @@ p5.XML.prototype._setAttributes = function(node) {
 };
 
 module.exports = p5.XML;
-},{"../core/core":37}],63:[function(_dereq_,module,exports){
+},{"../core/core":39}],65:[function(_dereq_,module,exports){
 /**
  * @module Math
  * @submodule Calculation
@@ -24586,7 +25736,7 @@ p5.prototype.sqrt = Math.sqrt;
 
 module.exports = p5;
 
-},{"../core/core":37}],64:[function(_dereq_,module,exports){
+},{"../core/core":39}],66:[function(_dereq_,module,exports){
 /**
  * @module Math
  * @submodule Math
@@ -24620,7 +25770,7 @@ p5.prototype.createVector = function (x, y, z) {
 
 module.exports = p5;
 
-},{"../core/core":37}],65:[function(_dereq_,module,exports){
+},{"../core/core":39}],67:[function(_dereq_,module,exports){
 //////////////////////////////////////////////////////////////
 
 // http://mrl.nyu.edu/~perlin/noise/
@@ -24923,7 +26073,7 @@ p5.prototype.noiseSeed = function(seed) {
 
 module.exports = p5;
 
-},{"../core/core":37}],66:[function(_dereq_,module,exports){
+},{"../core/core":39}],68:[function(_dereq_,module,exports){
 /**
  * @module Math
  * @submodule Math
@@ -25978,7 +27128,7 @@ p5.Vector.mag = function (vecT){
 
 module.exports = p5.Vector;
 
-},{"../core/constants":36,"../core/core":37,"./polargeometry":67}],67:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39,"./polargeometry":69}],69:[function(_dereq_,module,exports){
 
 module.exports = {
 
@@ -25992,7 +27142,7 @@ module.exports = {
 
 };
 
-},{}],68:[function(_dereq_,module,exports){
+},{}],70:[function(_dereq_,module,exports){
 /**
  * @module Math
  * @submodule Random
@@ -26238,7 +27388,7 @@ p5.prototype.randomGaussian = function(mean, sd)  {
 
 module.exports = p5;
 
-},{"../core/core":37}],69:[function(_dereq_,module,exports){
+},{"../core/core":39}],71:[function(_dereq_,module,exports){
 /**
  * @module Math
  * @submodule Trigonometry
@@ -26596,7 +27746,7 @@ p5.prototype.angleMode = function(mode) {
 
 module.exports = p5;
 
-},{"../core/constants":36,"../core/core":37,"./polargeometry":67}],70:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39,"./polargeometry":69}],72:[function(_dereq_,module,exports){
 /**
  * @module Typography
  * @submodule Attributes
@@ -26841,7 +27991,7 @@ p5.prototype._updateTextMetrics = function() {
 
 module.exports = p5;
 
-},{"../core/core":37}],71:[function(_dereq_,module,exports){
+},{"../core/core":39}],73:[function(_dereq_,module,exports){
 /**
  * @module Typography
  * @submodule Loading & Displaying
@@ -26996,7 +28146,7 @@ p5.prototype.textFont = function(theFont, theSize) {
 
 module.exports = p5;
 
-},{"../core/constants":36,"../core/core":37,"../core/error_helpers":40}],72:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39,"../core/error_helpers":42}],74:[function(_dereq_,module,exports){
 /**
  * This module defines the p5.Font class and functions for
  * drawing text to the display canvas.
@@ -28067,7 +29217,7 @@ function cacheKey() {
 
 module.exports = p5.Font;
 
-},{"../core/constants":36,"../core/core":37}],73:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39}],75:[function(_dereq_,module,exports){
 /**
  * @module Data
  * @submodule Array Functions
@@ -28415,7 +29565,7 @@ p5.prototype.subset = function(list, start, count) {
 
 module.exports = p5;
 
-},{"../core/core":37}],74:[function(_dereq_,module,exports){
+},{"../core/core":39}],76:[function(_dereq_,module,exports){
 /**
  * @module Data
  * @submodule Conversion
@@ -28680,7 +29830,7 @@ p5.prototype.unhex = function(n) {
 
 module.exports = p5;
 
-},{"../core/core":37}],75:[function(_dereq_,module,exports){
+},{"../core/core":39}],77:[function(_dereq_,module,exports){
 /**
  * @module Data
  * @submodule String Functions
@@ -29215,7 +30365,7 @@ p5.prototype.trim = function(str) {
 
 module.exports = p5;
 
-},{"../core/core":37}],76:[function(_dereq_,module,exports){
+},{"../core/core":39}],78:[function(_dereq_,module,exports){
 /**
  * @module IO
  * @submodule Time & Date
@@ -29384,7 +30534,7 @@ p5.prototype.year = function() {
 
 module.exports = p5;
 
-},{"../core/core":37}],77:[function(_dereq_,module,exports){
+},{"../core/core":39}],79:[function(_dereq_,module,exports){
 /**
  * @module Lights, Camera
  * @submodule Camera
@@ -29546,7 +30696,7 @@ p5.prototype.ortho = function(left,right,bottom,top,near,far) {
 
 module.exports = p5;
 
-},{"../core/core":37}],78:[function(_dereq_,module,exports){
+},{"../core/core":39}],80:[function(_dereq_,module,exports){
 'use strict';
 
 var p5 = _dereq_('../core/core');
@@ -29562,7 +30712,7 @@ p5.prototype.orbitControl = function(){
 };
 
 module.exports = p5;
-},{"../core/core":37}],79:[function(_dereq_,module,exports){
+},{"../core/core":39}],81:[function(_dereq_,module,exports){
 /**
  * @module Lights, Camera
  * @submodule Lights
@@ -29899,7 +31049,7 @@ p5.prototype.pointLight = function(v1, v2, v3, a, x, y, z) {
 
 module.exports = p5;
 
-},{"../core/core":37}],80:[function(_dereq_,module,exports){
+},{"../core/core":39}],82:[function(_dereq_,module,exports){
 /**
  * @module Shape
  * @submodule 3D Models
@@ -30132,7 +31282,7 @@ p5.prototype.model = function ( model ) {
 
 module.exports = p5;
 
-},{"../core/core":37,"./p5.Geometry":82}],81:[function(_dereq_,module,exports){
+},{"../core/core":39,"./p5.Geometry":84}],83:[function(_dereq_,module,exports){
 /**
  * @module Lights, Camera
  * @submodule Material
@@ -30480,7 +31630,7 @@ p5.RendererGL.prototype._applyColorBlend = function(v1,v2,v3,a){
 
 module.exports = p5;
 
-},{"../core/core":37}],82:[function(_dereq_,module,exports){
+},{"../core/core":39}],84:[function(_dereq_,module,exports){
 //some of the functions are adjusted from Three.js(http://threejs.org)
 
 'use strict';
@@ -30660,7 +31810,7 @@ p5.Geometry.prototype.normalize = function() {
 
 module.exports = p5.Geometry;
 
-},{"../core/core":37}],83:[function(_dereq_,module,exports){
+},{"../core/core":39}],85:[function(_dereq_,module,exports){
 /**
 * @requires constants
 * @todo see methods below needing further implementation.
@@ -31371,7 +32521,7 @@ p5.Matrix.prototype.ortho = function(left,right,bottom,top,near,far){
 
 module.exports = p5.Matrix;
 
-},{"../core/constants":36,"../core/core":37,"../math/polargeometry":67}],84:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39,"../math/polargeometry":69}],86:[function(_dereq_,module,exports){
 /**
  * Welcome to RendererGL Immediate Mode.
  * Immediate mode is used for drawing custom shapes
@@ -31555,7 +32705,7 @@ p5.RendererGL.prototype._getColorVertexShader = function(){
 };
 
 module.exports = p5.RendererGL;
-},{"../core/constants":36,"../core/core":37}],85:[function(_dereq_,module,exports){
+},{"../core/constants":38,"../core/core":39}],87:[function(_dereq_,module,exports){
 //Retained Mode. The default mode for rendering 3D primitives
 //in WEBGL.
 'use strict';
@@ -31714,7 +32864,7 @@ function vToNArray(arr){
 }
 module.exports = p5.RendererGL;
 
-},{"../core/core":37}],86:[function(_dereq_,module,exports){
+},{"../core/core":39}],88:[function(_dereq_,module,exports){
 'use strict';
 
 var p5 = _dereq_('../core/core');
@@ -32210,7 +33360,7 @@ p5.RendererGL.prototype._applyTextProperties = function() {
 };
 module.exports = p5.RendererGL;
 
-},{"../core/core":37,"../core/p5.Renderer":43,"./p5.Matrix":83,"./shader":88}],87:[function(_dereq_,module,exports){
+},{"../core/core":39,"../core/p5.Renderer":45,"./p5.Matrix":85,"./shader":90}],89:[function(_dereq_,module,exports){
 /**
  * @module Shape
  * @submodule 3D Primitives
@@ -33006,7 +34156,7 @@ p5.RendererGL.prototype.curve=function
 
 module.exports = p5;
 
-},{"../core/core":37,"./p5.Geometry":82}],88:[function(_dereq_,module,exports){
+},{"../core/core":39,"./p5.Geometry":84}],90:[function(_dereq_,module,exports){
 
 
 module.exports = {
@@ -33027,5 +34177,5 @@ module.exports = {
   lightTextureFrag:
     "precision mediump float;\n\nuniform vec4 uMaterialColor;\nuniform sampler2D uSampler;\nuniform bool isTexture;\n\nvarying vec3 vLightWeighting;\nvarying highp vec2 vVertTexCoord;\n\nvoid main(void) {\n  if(!isTexture){\n    gl_FragColor = vec4(vec3(uMaterialColor.rgb * vLightWeighting), uMaterialColor.a);\n  }else{\n    vec4 textureColor = texture2D(uSampler, vVertTexCoord);\n    if(vLightWeighting == vec3(0., 0., 0.)){\n      gl_FragColor = textureColor;\n    }else{\n      gl_FragColor = vec4(vec3(textureColor.rgb * vLightWeighting), textureColor.a);\n    }\n  }\n}"
 };
-},{}]},{},[28])(28)
+},{}]},{},[30])(30)
 });
