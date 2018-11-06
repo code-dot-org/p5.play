@@ -13477,7 +13477,6 @@ p5.Renderer2D.prototype._tintFillStyle = function() {
     saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
   }
 
-  console.log(hue, saturation*100, lightness*100);
   return 'hsl(' + hue + ', ' + (saturation*100) + '%, ' + (lightness*100) + '%)';
 };
 
