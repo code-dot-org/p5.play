@@ -13454,32 +13454,6 @@ p5.Renderer2D.prototype.stroke = function() {
   ctx.strokeStyle = color.toString();
 };
 
-p5.Renderer2D.prototype._tintFillStyle = function() {
-  var hue = this._pInst.hue(this._tint);
-
-  if (hue !== 0) {
-    return 'hsl(' + hue + ', 100%, 50%)';
-  }
-
-  // Calculate saturation and lightness for hue with value 0.
-  // Reference for solution: https://gist.github.com/mjackson/5311256
-  var r = this._tint[0] / 255;
-  var g = this._tint[1] / 255;
-  var b = this._tint[2] / 255;
-  var max = Math.max(r, g, b);
-  var min = Math.min(r, g, b);
-  var saturation, lightness = (max + min) / 2;
-
-  if (max == min) {
-    saturation = 0; // achromatic
-  } else {
-    var delta = max - min;
-    saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
-  }
-
-  return 'hsl(' + hue + ', ' + (saturation*100) + '%, ' + (lightness*100) + '%)';
-};
-
 //////////////////////////////////////////////
 // IMAGE | Loading & Displaying
 //////////////////////////////////////////////
@@ -13517,7 +13491,7 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   this._tintCanvas.height = img.canvas.height;
   var tmpCtx = this._tintCanvas.getContext('2d');
 
-  tmpCtx.fillStyle = this._tintFillStyle();
+  tmpCtx.fillStyle = 'rgba(' + this._tint.join(', ') + ')';
   tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
   tmpCtx.globalCompositeOperation = 'destination-atop';
   tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
