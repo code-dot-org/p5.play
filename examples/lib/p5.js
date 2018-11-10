@@ -13490,7 +13490,8 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   this._tintCanvas.width = img.canvas.width;
   this._tintCanvas.height = img.canvas.height;
   var tmpCtx = this._tintCanvas.getContext('2d');
-  tmpCtx.fillStyle = 'hsl(' + this._pInst.hue(this._tint) + ', 100%, 50%)';
+
+  tmpCtx.fillStyle = 'rgba(' + this._tint.join(', ') + ')';
   tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
   tmpCtx.globalCompositeOperation = 'destination-atop';
   tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
