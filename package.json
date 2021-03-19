@@ -1,7 +1,7 @@
 {
   "name": "@code-dot-org/p5.play",
   "version": "1.3.12-cdo",
-  "description": "Code.org fork of molleindustria/p5.play for use within the Code Studio learnpillowing environment.",
+  "description": "Code.org fork of molleindustria/p5.play for use within the Code Studio learning environment.",
   "dependencies": {
     "@code-dot-org/p5": "0.5.4-cdo.5"
   },
