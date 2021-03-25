@@ -43,9 +43,6 @@ describe('Input', function() {
     mouseup(LEFT);
     nextFrame();
 
-    // eslint-disable-next-line no-warning-comments
-    // TODO: Is this actually the expected behavior?
-    // See https://github.com/molleindustria/p5.play/issues/43 for details.
     expect(myp5.mouseUp(LEFT)).to.be.false;
 
     nextFrame();
@@ -62,9 +59,6 @@ describe('Input', function() {
     mousedown(LEFT);
     nextFrame();
 
-    // eslint-disable-next-line no-warning-comments
-    // TODO: Is this actually the expected behavior?
-    // See https://github.com/molleindustria/p5.play/issues/43 for details.
     expect(myp5.mouseDown(LEFT)).to.be.false;
 
     nextFrame();
@@ -109,9 +103,6 @@ describe('Input', function() {
     keydown(LEFT_ARROW);
     nextFrame();
 
-    // eslint-disable-next-line no-warning-comments
-    // TODO: Is this actually the expected behavior?
-    // See https://github.com/molleindustria/p5.play/issues/43 for details.
     expect(myp5.keyDown(LEFT_ARROW)).to.be.false;
 
     nextFrame();
