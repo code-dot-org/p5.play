@@ -56,6 +56,7 @@ describe('CircleCollider', function() {
       expect(circle._getRadiusOnAxis()).to.equal(30);
     });
 
+    // eslint-disable-next-line no-warning-comments
     // TODO: If/when we add ellipse support, should also make the circle
     // collider report correct radius on axis when scaleX != scaleY
   });
