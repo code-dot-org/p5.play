@@ -13493,7 +13493,7 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
 
   // this._tint stores rgba values on scale form 0-255. To set fillStyle with
   // 'rgba', the alpha needs to be on a 0 to 1 scale.
-  let rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
+  var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
   tmpCtx.fillStyle = 'rgba(' + rgba + ')';
   tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
   tmpCtx.globalCompositeOperation = 'destination-atop';
