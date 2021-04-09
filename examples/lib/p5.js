@@ -13205,6 +13205,7 @@ p5.Renderer = function(elt, pInst, isMainCanvas) {
   this._imageMode = constants.CORNER;
 
   this._tint = null;
+  this._transparency = null;
   this._doStroke = true;
   this._doFill = true;
   this._strokeSet = false;
@@ -13462,7 +13463,7 @@ p5.Renderer2D.prototype.image =
   function (img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
   var cnv;
   try {
-    if (this._tint) {
+    if (this._tint || this._transparency) {
       if (p5.MediaElement && img instanceof p5.MediaElement) {
         img.loadPixels();
       }
@@ -13486,7 +13487,6 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   if (!img.canvas) {
     return img;
   }
-
 
   this._tintCanvas = this._tintCanvas || document.createElement('canvas');
   this._tintCanvas.width = img.canvas.width;
@@ -15248,6 +15248,7 @@ p5.prototype.push = function () {
     _doFill: this._renderer._doFill,
     _fillSet: this._renderer._fillSet,
     _tint: this._renderer._tint,
+    _transparency: this._renderer._transparency,
     _imageMode: this._renderer._imageMode,
     _rectMode: this._renderer._rectMode,
     _ellipseMode: this._renderer._ellipseMode,
@@ -19919,6 +19920,10 @@ p5.prototype.image =
 p5.prototype.tint = function () {
   var c = this.color.apply(this, arguments);
   this._renderer._tint = c.levels;
+};
+
+p5.prototype.transparency = function () {
+  this._renderer._transparency = arguments[0];
 };
 
 /**
