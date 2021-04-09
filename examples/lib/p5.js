@@ -13494,12 +13494,13 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   var tmpCtx = this._tintCanvas.getContext('2d');
 
   // Special case of 'white tint' which affects only transparency - default to P5.prototype
-  // of tint. Otherwise, use code-dot-org specific behavior where tint only affects the RGB
+  // tint. Otherwise, use code-dot-org specific behavior where tint only affects the RGB
   // of the sprite and the alpha of tint changes the 'strength' of the tint.
-  if (this._tint[0] === 255 && this._tint[1] === 255 && this._tint[2] === 255) {
-    // Set the p5 renderer tint to the current tint value
+  if (this._transparency) {
+    // Set the p5 renderer tint to the current tint value.
+    // Transparency stored as value between 0 to 1, but tint is stored as value between 0 and 255.
     p5.prototype._renderer = {};
-    p5.prototype._renderer._tint = this._tint;
+    p5.prototype._renderer._tint = [255, 255, 255, this._transparency * 255];
     return p5.prototype._getTintedImageCanvas(img);
   } else {
     // this._tint stores rgba values on scale form 0-255. To set fillStyle with
