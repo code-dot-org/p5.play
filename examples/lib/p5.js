@@ -13486,23 +13486,36 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   if (!img.canvas) {
     return img;
   }
+
+
   this._tintCanvas = this._tintCanvas || document.createElement('canvas');
   this._tintCanvas.width = img.canvas.width;
   this._tintCanvas.height = img.canvas.height;
   var tmpCtx = this._tintCanvas.getContext('2d');
 
-  // this._tint stores rgba values on scale form 0-255. To set fillStyle with
-  // 'rgba', the alpha needs to be on a 0 to 1 scale.
-  var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
-  tmpCtx.fillStyle = 'rgba(' + rgba + ')';
-  tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
-  tmpCtx.globalCompositeOperation = 'destination-atop';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-    this._tintCanvas.height);
-  tmpCtx.globalCompositeOperation = 'multiply';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-    this._tintCanvas.height);
-  return this._tintCanvas;
+  // Special case of 'white tint' which affects only transparency - default to P5.prototype
+  // of tint. Otherwise, use code-dot-org specific behavior where tint only affects the RGB
+  // of the sprite and the alpha of tint changes the 'strength' of the tint.
+  if (this._tint[0] === 255 && this._tint[1] === 255 && this._tint[2] === 255) {
+    // Set the p5 renderer tint to the current tint value
+    p5.prototype._renderer = {};
+    p5.prototype._renderer._tint = this._tint;
+    return p5.prototype._getTintedImageCanvas(img);
+  } else {
+    // this._tint stores rgba values on scale form 0-255. To set fillStyle with
+    // 'rgba', the alpha needs to be on a 0 to 1 scale.
+    var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
+    tmpCtx.fillStyle = 'rgba(' + rgba + ')';
+    tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
+    tmpCtx.globalCompositeOperation = 'destination-atop';
+    tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+      this._tintCanvas.height);
+    tmpCtx.globalCompositeOperation = 'multiply';
+    tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+      this._tintCanvas.height);
+    return this._tintCanvas;
+  }
+
 };
 
 
