@@ -13499,24 +13499,22 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   if (this._alpha) {
     // Set the p5 renderer tint to the current tint value.
     // Alpha stored as value between 0 to 1, but tint is stored as value between 0 and 255.
-    p5.prototype._renderer = {};
-    p5.prototype._renderer._tint = [255, 255, 255, this._alpha * 255];
+    p5.prototype._renderer = p5.prototype._renderer || {};
+    p5.prototype._renderer._tint = [255, 255, 255, Math.round(this._alpha * 255)];
     return p5.prototype._getTintedImageCanvas(img);
-  } else {
-    // this._tint stores rgba values on scale form 0-255. To set fillStyle with
-    // 'rgba', the alpha needs to be on a 0 to 1 scale.
-    var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
-    tmpCtx.fillStyle = 'rgba(' + rgba + ')';
-    tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
-    tmpCtx.globalCompositeOperation = 'destination-atop';
-    tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-      this._tintCanvas.height);
-    tmpCtx.globalCompositeOperation = 'multiply';
-    tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-      this._tintCanvas.height);
-    return this._tintCanvas;
   }
-
+  // this._tint stores rgba values on scale form 0-255. To set fillStyle with
+  // 'rgba', the alpha needs to be on a 0 to 1 scale.
+  var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
+  tmpCtx.fillStyle = 'rgba(' + rgba + ')';
+  tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
+  tmpCtx.globalCompositeOperation = 'destination-atop';
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+    this._tintCanvas.height);
+  tmpCtx.globalCompositeOperation = 'multiply';
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+    this._tintCanvas.height);
+  return this._tintCanvas;
 };
 
 
