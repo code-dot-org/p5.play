@@ -13205,6 +13205,7 @@ p5.Renderer = function(elt, pInst, isMainCanvas) {
   this._imageMode = constants.CORNER;
 
   this._tint = null;
+  this._alpha = null;
   this._doStroke = true;
   this._doFill = true;
   this._strokeSet = false;
@@ -13462,7 +13463,7 @@ p5.Renderer2D.prototype.image =
   function (img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
   var cnv;
   try {
-    if (this._tint) {
+    if (this._tint || this._alpha) {
       if (p5.MediaElement && img instanceof p5.MediaElement) {
         img.loadPixels();
       }
@@ -13486,11 +13487,22 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   if (!img.canvas) {
     return img;
   }
+
   this._tintCanvas = this._tintCanvas || document.createElement('canvas');
   this._tintCanvas.width = img.canvas.width;
   this._tintCanvas.height = img.canvas.height;
   var tmpCtx = this._tintCanvas.getContext('2d');
 
+  // Special case of 'white tint' which affects only alpha - default to P5.prototype
+  // tint. Otherwise, use code-dot-org specific behavior where tint only affects the RGB
+  // of the sprite and the alpha of tint changes the 'strength' of the tint.
+  if (this._alpha) {
+    // Set the p5 renderer tint to the current tint value.
+    // Alpha stored as value between 0 to 1, but tint is stored as value between 0 and 255.
+    p5.prototype._renderer = p5.prototype._renderer || {};
+    p5.prototype._renderer._tint = [255, 255, 255, Math.round(this._alpha * 255)];
+    return p5.prototype._getTintedImageCanvas(img);
+  }
   // this._tint stores rgba values on scale form 0-255. To set fillStyle with
   // 'rgba', the alpha needs to be on a 0 to 1 scale.
   var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
@@ -15235,6 +15247,7 @@ p5.prototype.push = function () {
     _doFill: this._renderer._doFill,
     _fillSet: this._renderer._fillSet,
     _tint: this._renderer._tint,
+    _alpha: this._renderer._alpha,
     _imageMode: this._renderer._imageMode,
     _rectMode: this._renderer._rectMode,
     _ellipseMode: this._renderer._ellipseMode,
@@ -19906,6 +19919,10 @@ p5.prototype.image =
 p5.prototype.tint = function () {
   var c = this.color.apply(this, arguments);
   this._renderer._tint = c.levels;
+};
+
+p5.prototype.alpha = function () {
+  this._renderer._alpha = arguments[0];
 };
 
 /**
