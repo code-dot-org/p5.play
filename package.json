@@ -3,7 +3,7 @@
   "version": "1.3.14-cdo",
   "description": "Code.org fork of molleindustria/p5.play for use within the Code Studio learning environment.",
   "dependencies": {
-    "@code-dot-org/p5": "0.5.4-cdo.6"
+    "@code-dot-org/p5": "0.5.4-cdo.7"
   },
   "devDependencies": {
     "eslint": "^3.1.0",
