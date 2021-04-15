@@ -19921,6 +19921,12 @@ p5.prototype.tint = function () {
   this._renderer._tint = c.levels;
 };
 
+/**
+ * Sets the alpha value on the renderer which can be used in a tint special
+ * case to change the opacity of the sprite
+  @method alphaTint
+  @param {Number} alpha  opacity of the sprite
+ */
 p5.prototype.alphaTint = function () {
   this._renderer._alpha = arguments[0];
 };
