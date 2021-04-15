@@ -19921,7 +19921,7 @@ p5.prototype.tint = function () {
   this._renderer._tint = c.levels;
 };
 
-p5.prototype.alpha = function () {
+p5.prototype.alphaTint = function () {
   this._renderer._alpha = arguments[0];
 };
 
