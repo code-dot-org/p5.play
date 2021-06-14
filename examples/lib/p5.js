@@ -13493,28 +13493,36 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   this._tintCanvas.height = img.canvas.height;
   var tmpCtx = this._tintCanvas.getContext('2d');
 
-  // Special case of 'white tint' which affects only alpha - default to P5.prototype
-  // tint. Otherwise, use code-dot-org specific behavior where tint only affects the RGB
-  // of the sprite and the alpha of tint changes the 'strength' of the tint.
+  // If tint has been set, use code-dot-org specific behavior where tint
+  // only affects the RGB of the sprite and the alpha of tint changes
+  // the 'strength' of the tint.
+  if (this._tint) {
+    // this._tint stores rgba values on scale form 0-255. To set fillStyle with
+    // 'rgba', the alpha needs to be on a 0 to 1 scale.
+    var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
+    tmpCtx.fillStyle = 'rgba(' + rgba + ')';
+    tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
+    tmpCtx.globalCompositeOperation = 'destination-atop';
+    tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+      this._tintCanvas.height);
+  }
+
+  tmpCtx.globalCompositeOperation = 'multiply';
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+    this._tintCanvas.height);
+
+  // If alpha is set, use default p5.prototype tint, only using alpha value.
+  // If not alpha is set, return previous canvas.
   if (this._alpha) {
     // Set the p5 renderer tint to the current tint value.
     // Alpha stored as value between 0 to 1, but tint is stored as value between 0 and 255.
     p5.prototype._renderer = p5.prototype._renderer || {};
     p5.prototype._renderer._tint = [255, 255, 255, Math.round(this._alpha * 255)];
-    return p5.prototype._getTintedImageCanvas(img);
+    return p5.prototype._getTintedImageCanvas(tmpCtx);
+  } else {
+    return this._tintCanvas;
   }
-  // this._tint stores rgba values on scale form 0-255. To set fillStyle with
-  // 'rgba', the alpha needs to be on a 0 to 1 scale.
-  var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
-  tmpCtx.fillStyle = 'rgba(' + rgba + ')';
-  tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
-  tmpCtx.globalCompositeOperation = 'destination-atop';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-    this._tintCanvas.height);
-  tmpCtx.globalCompositeOperation = 'multiply';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-    this._tintCanvas.height);
-  return this._tintCanvas;
+
 };
 
 
