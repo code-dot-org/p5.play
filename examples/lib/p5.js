@@ -19935,12 +19935,12 @@ p5.prototype.tint = function () {
  * @param {Number} alpha  opacity of the sprite
  */
 p5.prototype.alphaTint = function () {
-  // alpha should be between 0.01 and 1
+  // Enforce that alpha is between 0 and 1
   var alpha = arguments[0];
   if (typeof alpha === "string") {
     alpha = Number(alpha);
   }
-  alpha = Math.max(alpha, 0.01);
+  alpha = Math.max(alpha, 0);
   alpha = Math.min(alpha, 1);
   this._renderer._alpha = alpha;
 };
