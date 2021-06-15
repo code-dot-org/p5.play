@@ -13205,7 +13205,6 @@ p5.Renderer = function(elt, pInst, isMainCanvas) {
   this._imageMode = constants.CORNER;
 
   this._tint = null;
-  this._alpha = null;
   this._doStroke = true;
   this._doFill = true;
   this._strokeSet = false;
@@ -13463,7 +13462,7 @@ p5.Renderer2D.prototype.image =
   function (img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
   var cnv;
   try {
-    if (this._tint || this._alpha) {
+    if (this._tint || (this._alpha < 1)) {
       if (p5.MediaElement && img instanceof p5.MediaElement) {
         img.loadPixels();
       }
@@ -13513,7 +13512,7 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
 
   // If alpha is set, use default p5.prototype tint, only using alpha value.
   // If not alpha is set, return previous canvas.
-  if (this._alpha) {
+  if (this._alpha < 1) {
     // Set the p5 renderer tint to the current tint value.
     // Alpha stored as value between 0 to 1, but tint is stored as value between 0 and 255.
     p5.prototype._renderer = p5.prototype._renderer || {};
