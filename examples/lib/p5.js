@@ -13205,7 +13205,6 @@ p5.Renderer = function(elt, pInst, isMainCanvas) {
   this._imageMode = constants.CORNER;
 
   this._tint = null;
-  this._alpha = null;
   this._doStroke = true;
   this._doFill = true;
   this._strokeSet = false;
@@ -13463,7 +13462,7 @@ p5.Renderer2D.prototype.image =
   function (img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
   var cnv;
   try {
-    if (this._tint || this._alpha) {
+    if (this._tint || (this._alpha < 1)) {
       if (p5.MediaElement && img instanceof p5.MediaElement) {
         img.loadPixels();
       }
@@ -13493,28 +13492,36 @@ p5.Renderer2D.prototype._getTintedImageCanvas = function (img) {
   this._tintCanvas.height = img.canvas.height;
   var tmpCtx = this._tintCanvas.getContext('2d');
 
-  // Special case of 'white tint' which affects only alpha - default to P5.prototype
-  // tint. Otherwise, use code-dot-org specific behavior where tint only affects the RGB
-  // of the sprite and the alpha of tint changes the 'strength' of the tint.
-  if (this._alpha) {
+  // If tint has been set, use code-dot-org specific behavior where tint
+  // only affects the RGB of the sprite and the alpha of tint changes
+  // the 'strength' of the tint.
+  if (this._tint) {
+    // this._tint stores rgba values on scale form 0-255. To set fillStyle with
+    // 'rgba', the alpha needs to be on a 0 to 1 scale.
+    var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
+    tmpCtx.fillStyle = 'rgba(' + rgba + ')';
+    tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
+    tmpCtx.globalCompositeOperation = 'destination-atop';
+    tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+      this._tintCanvas.height);
+  }
+
+  tmpCtx.globalCompositeOperation = 'multiply';
+  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
+    this._tintCanvas.height);
+
+  // If alpha is set, use default p5.prototype tint, only using alpha value.
+  // If not alpha is set, return previous canvas.
+  if (this._alpha < 1) {
     // Set the p5 renderer tint to the current tint value.
     // Alpha stored as value between 0 to 1, but tint is stored as value between 0 and 255.
     p5.prototype._renderer = p5.prototype._renderer || {};
     p5.prototype._renderer._tint = [255, 255, 255, Math.round(this._alpha * 255)];
-    return p5.prototype._getTintedImageCanvas(img);
+    return p5.prototype._getTintedImageCanvas(tmpCtx);
+  } else {
+    return this._tintCanvas;
   }
-  // this._tint stores rgba values on scale form 0-255. To set fillStyle with
-  // 'rgba', the alpha needs to be on a 0 to 1 scale.
-  var rgba = this._tint.slice(0,3).join(',') + ", " + this._tint[3] / 255;
-  tmpCtx.fillStyle = 'rgba(' + rgba + ')';
-  tmpCtx.fillRect(0, 0, this._tintCanvas.width, this._tintCanvas.height);
-  tmpCtx.globalCompositeOperation = 'destination-atop';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-    this._tintCanvas.height);
-  tmpCtx.globalCompositeOperation = 'multiply';
-  tmpCtx.drawImage(img.canvas, 0, 0, this._tintCanvas.width,
-    this._tintCanvas.height);
-  return this._tintCanvas;
+
 };
 
 
@@ -19928,7 +19935,14 @@ p5.prototype.tint = function () {
  * @param {Number} alpha  opacity of the sprite
  */
 p5.prototype.alphaTint = function () {
-  this._renderer._alpha = arguments[0];
+  // Enforce that alpha is between 0 and 1
+  var alpha = arguments[0];
+  if (typeof alpha === "string") {
+    alpha = Number(alpha);
+  }
+  alpha = Math.max(alpha, 0);
+  alpha = Math.min(alpha, 1);
+  this._renderer._alpha = alpha;
 };
 
 /**
