@@ -13205,6 +13205,7 @@ p5.Renderer = function(elt, pInst, isMainCanvas) {
   this._imageMode = constants.CORNER;
 
   this._tint = null;
+  this._alpha = 1;
   this._doStroke = true;
   this._doFill = true;
   this._strokeSet = false;
